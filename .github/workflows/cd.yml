@@ -37,17 +37,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Create deployment archive
-        run: >
-          tar
-          --exclude=.git
-          --exclude=.github
-          --exclude=frontend/.next
-          --exclude=frontend/node_modules
-          --exclude=frontend/data
-          --exclude=backend/.venv
-          --exclude=backend/__pycache__
-          -czf deploy.tar.gz
-          .
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=frontend/.next \
+            --exclude=frontend/node_modules \
+            --exclude=frontend/data \
+            --exclude=backend/.venv \
+            --exclude=backend/__pycache__ \
+            -czf "$RUNNER_TEMP/deploy.tar.gz" \
+            .
+          cp "$RUNNER_TEMP/deploy.tar.gz" deploy.tar.gz
 
       - name: Ensure deploy directory exists on VPS
         uses: appleboy/ssh-action@v1.2.0
