@@ -1,5 +1,119 @@
-import { neon } from "@neondatabase/serverless"
+import { mkdirSync } from "node:fs"
+import path from "node:path"
+import { DatabaseSync } from "node:sqlite"
 
-const sql = neon(process.env.DATABASE_URL!)
+type SqlValue = string | number | bigint | Uint8Array | Buffer | null | undefined | boolean | Date
+type SqlRow = Record<string, unknown>
+
+const DEFAULT_DATABASE_URL = "file:./data/app.db"
+
+const schema = `
+  PRAGMA foreign_keys = ON;
+
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    level INTEGER NOT NULL DEFAULT 1,
+    xp INTEGER NOT NULL DEFAULT 0,
+    xp_to_next_level INTEGER NOT NULL DEFAULT 500,
+    avatar TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token TEXT NOT NULL UNIQUE,
+    expires_at TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions(token);
+
+  CREATE TABLE IF NOT EXISTS user_badges (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    badge_id TEXT NOT NULL,
+    earned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, badge_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS quiz_completions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    quiz_id TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    xp_earned INTEGER NOT NULL,
+    completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+`
+
+function resolveDatabasePath(databaseUrl: string): string {
+  if (databaseUrl === ":memory:") {
+    return databaseUrl
+  }
+
+  if (databaseUrl.startsWith("file:")) {
+    const filePath = databaseUrl.slice("file:".length)
+    return path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath)
+  }
+
+  if (databaseUrl.startsWith("sqlite:///")) {
+    return databaseUrl.slice("sqlite:///".length)
+  }
+
+  return path.isAbsolute(databaseUrl) ? databaseUrl : path.resolve(process.cwd(), databaseUrl)
+}
+
+function normalizeValue(value: SqlValue): SqlValue {
+  if (value instanceof Date) {
+    return value.toISOString().replace("T", " ").replace("Z", "")
+  }
+
+  if (typeof value === "boolean") {
+    return value ? 1 : 0
+  }
+
+  return value ?? null
+}
+
+function buildQuery(strings: TemplateStringsArray, values: SqlValue[]) {
+  let text = ""
+
+  for (let index = 0; index < strings.length; index += 1) {
+    text += strings[index]
+    if (index < values.length) {
+      text += "?"
+    }
+  }
+
+  return {
+    text: text.trim(),
+    values: values.map(normalizeValue),
+  }
+}
+
+const databasePath = resolveDatabasePath(process.env.DATABASE_URL || DEFAULT_DATABASE_URL)
+
+if (databasePath !== ":memory:") {
+  mkdirSync(path.dirname(databasePath), { recursive: true })
+}
+
+const db = new DatabaseSync(databasePath)
+db.exec(schema)
+
+async function sql(strings: TemplateStringsArray, ...values: SqlValue[]): Promise<SqlRow[]> {
+  const query = buildQuery(strings, values)
+  const statement = db.prepare(query.text)
+
+  if (/^\s*select\b/i.test(query.text) || /\breturning\b/i.test(query.text)) {
+    return statement.all(...query.values) as SqlRow[]
+  }
+
+  statement.run(...query.values)
+  return []
+}
 
 export default sql

@@ -15,11 +15,11 @@ import {
 import { Button } from "@/components/ui/button"
 
 const navItems = [
-  { label: "Tableau de bord", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Modules", href: "/modules", icon: BookOpen },
-  { label: "Quiz", href: "/quiz", icon: HelpCircle },
-  { label: "Mini-jeux", href: "/games", icon: Gamepad2 },
-  { label: "Badges", href: "/badges", icon: Trophy },
+  { label: "Tableau de bord", href: "/dashboard", icon: "dashboard" },
+  { label: "Modules", href: "/modules", icon: "book" },
+  { label: "Quiz", href: "/quiz", icon: "quiz" },
+  { label: "Mini-jeux", href: "/games", icon: "game" },
+  { label: "Badges", href: "/badges", icon: "trophy" },
 ]
 
 export async function AppSidebar() {

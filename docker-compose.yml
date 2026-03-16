@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: sqlite:////app/data/app.db
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-replace_me}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-mistralai/mistral-small-3.1-24b-instruct:free}
+      OPENROUTER_SITE_URL: ${OPENROUTER_SITE_URL:-http://localhost:3000}
+      OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-b1-b2}
+      OPENROUTER_TEMPERATURE: ${OPENROUTER_TEMPERATURE:-0.7}
+      OPENROUTER_MAX_TOKENS: ${OPENROUTER_MAX_TOKENS:-700}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend-data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/app/data/app.db
+      PORT: 3000
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - frontend-data:/app/data
+
+volumes:
+  backend-data:
+  frontend-data:

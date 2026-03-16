@@ -19,7 +19,7 @@ export async function getSession(): Promise<SessionUser | null> {
     SELECT u.id, u.username, u.email, u.level, u.xp, u.avatar
     FROM sessions s
     JOIN users u ON u.id = s.user_id
-    WHERE s.token = ${token} AND s.expires_at > NOW()
+    WHERE s.token = ${token} AND s.expires_at > CURRENT_TIMESTAMP
     LIMIT 1
   `
   return rows[0] ?? null

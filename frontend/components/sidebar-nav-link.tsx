@@ -3,17 +3,28 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import type { LucideIcon } from "lucide-react"
+import { BookOpen, Gamepad2, HelpCircle, LayoutDashboard, Trophy } from "lucide-react"
+
+const icons = {
+  dashboard: LayoutDashboard,
+  book: BookOpen,
+  quiz: HelpCircle,
+  game: Gamepad2,
+  trophy: Trophy,
+}
+
+type IconName = keyof typeof icons
 
 type Props = {
   href: string
   label: string
-  icon: LucideIcon
+  icon: IconName
 }
 
-export function SidebarNavLink({ href, label, icon: Icon }: Props) {
+export function SidebarNavLink({ href, label, icon }: Props) {
   const pathname = usePathname()
   const isActive = pathname === href || pathname.startsWith(href + "/")
+  const Icon = icons[icon]
 
   return (
     <Link

@@ -1,0 +1,107 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DEPLOY_PATH: /opt/github/b1-b2
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose file
+        run: docker compose config
+
+      - name: Build backend and frontend images
+        run: docker compose build backend frontend
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create deployment archive
+        run: >
+          tar
+          --exclude=.git
+          --exclude=.github
+          --exclude=frontend/.next
+          --exclude=frontend/node_modules
+          --exclude=frontend/data
+          --exclude=backend/.venv
+          --exclude=backend/__pycache__
+          -czf deploy.tar.gz
+          .
+
+      - name: Ensure deploy directory exists on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST_IP }}
+          port: ${{ secrets.HOST_PORT }}
+          username: ${{ secrets.HOST_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: mkdir -p "${{ env.DEPLOY_PATH }}"
+
+      - name: Upload deployment archive
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST_IP }}
+          port: ${{ secrets.HOST_PORT }}
+          username: ${{ secrets.HOST_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: deploy.tar.gz
+          target: ${{ env.DEPLOY_PATH }}
+
+      - name: Deploy on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.HOST_IP }}
+          port: ${{ secrets.HOST_PORT }}
+          username: ${{ secrets.HOST_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -eu
+            APP_DIR="${{ env.DEPLOY_PATH }}"
+
+            mkdir -p "$APP_DIR"
+            find "$APP_DIR" -mindepth 1 -maxdepth 1 ! -name "deploy.tar.gz" -exec rm -rf {} +
+            tar -xzf "$APP_DIR/deploy.tar.gz" -C "$APP_DIR"
+            rm -f "$APP_DIR/deploy.tar.gz"
+
+            cat > "$APP_DIR/.env" <<EOF
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
+            OPENROUTER_MODEL=${{ secrets.OPENROUTER_MODEL }}
+            OPENROUTER_SITE_URL=${{ secrets.OPENROUTER_SITE_URL }}
+            OPENROUTER_APP_NAME=${{ secrets.OPENROUTER_APP_NAME }}
+            OPENROUTER_TEMPERATURE=${{ secrets.OPENROUTER_TEMPERATURE }}
+            OPENROUTER_MAX_TOKENS=${{ secrets.OPENROUTER_MAX_TOKENS }}
+            EOF
+
+            cd "$APP_DIR"
+            docker compose up -d --build --remove-orphans
+
+            BACKEND_CONTAINER="$(docker compose ps -q backend)"
+            FRONTEND_CONTAINER="$(docker compose ps -q frontend)"
+
+            test -n "$BACKEND_CONTAINER"
+            test -n "$FRONTEND_CONTAINER"
+            test "$(docker inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER")" = "true"
+            test "$(docker inspect -f '{{.State.Running}}' "$FRONTEND_CONTAINER")" = "true"
+
+            docker compose ps

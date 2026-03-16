@@ -6,7 +6,11 @@ import bcrypt from "bcryptjs"
 import { randomBytes } from "crypto"
 import sql from "@/lib/db"
 
-export async function signUp(formData: FormData) {
+type AuthActionState = {
+  error: string
+}
+
+export async function signUp(_: AuthActionState, formData: FormData) {
   const username = formData.get("username") as string
   const email = formData.get("email") as string
   const password = formData.get("password") as string
@@ -31,7 +35,7 @@ export async function signUp(formData: FormData) {
   redirect("/dashboard")
 }
 
-export async function signIn(formData: FormData) {
+export async function signIn(_: AuthActionState, formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
 
