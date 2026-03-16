@@ -1,0 +1,38 @@
+-- Users table
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  level INTEGER NOT NULL DEFAULT 1,
+  xp INTEGER NOT NULL DEFAULT 0,
+  xp_to_next_level INTEGER NOT NULL DEFAULT 500,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Sessions table
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- User badges table
+CREATE TABLE IF NOT EXISTS user_badges (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  badge_id VARCHAR(100) NOT NULL,
+  earned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(user_id, badge_id)
+);
+
+-- Quiz completions tracking
+CREATE TABLE IF NOT EXISTS quiz_completions (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  quiz_id VARCHAR(100) NOT NULL,
+  score INTEGER NOT NULL,
+  xp_earned INTEGER NOT NULL,
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
