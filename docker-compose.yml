@@ -29,6 +29,16 @@ services:
     volumes:
       - frontend-data:/app/data
 
+  nginx:
+    build:
+      context: ./backend/nginx
+    restart: unless-stopped
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - "80:80"
+
 volumes:
   backend-data:
   frontend-data:
