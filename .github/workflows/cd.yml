@@ -79,11 +79,22 @@ jobs:
           script: |
             set -eu
             APP_DIR="${{ env.DEPLOY_PATH }}"
+            ARCHIVE_PATH="$(find "$APP_DIR" -maxdepth 2 -name deploy.tar.gz | head -n 1 || true)"
 
             mkdir -p "$APP_DIR"
-            find "$APP_DIR" -mindepth 1 -maxdepth 1 ! -name "deploy.tar.gz" -exec rm -rf {} +
-            tar -xzf "$APP_DIR/deploy.tar.gz" -C "$APP_DIR"
-            rm -f "$APP_DIR/deploy.tar.gz"
+            test -n "$ARCHIVE_PATH"
+            find "$APP_DIR" -mindepth 1 -maxdepth 1 ! -name "$(basename "$ARCHIVE_PATH")" -exec rm -rf {} +
+            tar -xzf "$ARCHIVE_PATH" -C "$APP_DIR"
+            rm -f "$ARCHIVE_PATH"
+
+            if docker compose version >/dev/null 2>&1; then
+              DOCKER_CMD="docker"
+            elif sudo -n docker compose version >/dev/null 2>&1; then
+              DOCKER_CMD="sudo docker"
+            else
+              echo "docker compose is unavailable for ${USER}"
+              exit 1
+            fi
 
             cat > "$APP_DIR/.env" <<EOF
             OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
@@ -95,14 +106,14 @@ jobs:
             EOF
 
             cd "$APP_DIR"
-            docker compose up -d --build --remove-orphans
+            $DOCKER_CMD compose up -d --build --remove-orphans
 
-            BACKEND_CONTAINER="$(docker compose ps -q backend)"
-            FRONTEND_CONTAINER="$(docker compose ps -q frontend)"
+            BACKEND_CONTAINER="$($DOCKER_CMD compose ps -q backend)"
+            FRONTEND_CONTAINER="$($DOCKER_CMD compose ps -q frontend)"
 
             test -n "$BACKEND_CONTAINER"
             test -n "$FRONTEND_CONTAINER"
-            test "$(docker inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER")" = "true"
-            test "$(docker inspect -f '{{.State.Running}}' "$FRONTEND_CONTAINER")" = "true"
+            test "$($DOCKER_CMD inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER")" = "true"
+            test "$($DOCKER_CMD inspect -f '{{.State.Running}}' "$FRONTEND_CONTAINER")" = "true"
 
-            docker compose ps
+            $DOCKER_CMD compose ps
