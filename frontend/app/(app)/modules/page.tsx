@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight, ChevronLeft } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,7 @@ export default function ModulesPage() {
   const [openedSources, setOpenedSources] = useState<string[]>([])
   const [courseRead, setCourseRead] = useState(false)
   const [celebrate, setCelebrate] = useState(false)
+  const [completedModuleIds, setCompletedModuleIds] = useState<number[]>([])
 
   const selected = selectedId != null ? modules.find((m) => m.id === selectedId) ?? null : null
 
@@ -35,6 +36,23 @@ export default function ModulesPage() {
   const stepsDone = selected ? (courseRead ? 1 : 0) + doneSources : 0
   const completed = selected ? stepsDone >= totalSteps && totalSteps > 0 : false
 
+  // Quand un module est complété, on l'ajoute à la liste (une seule fois) et on déclenche l'animation
+  useEffect(() => {
+    if (!selected || !completed) return
+
+    setCompletedModuleIds((prev) => (prev.includes(selected.id) ? prev : [...prev, selected.id]))
+    setCelebrate(true)
+    const t = setTimeout(() => setCelebrate(false), 2000)
+    return () => clearTimeout(t)
+  }, [selected, completed])
+
+  const completedCount = completedModuleIds.length
+  const completedRatio = modules.length > 0 ? completedCount / modules.length : 0
+  const totalXp = completedModuleIds.reduce((sum, id) => {
+    const m = modules.find((mod) => mod.id === id)
+    return sum + (m?.xp ?? 0)
+  }, 0)
+
   if (!selected) {
     // vue liste uniquement
     return (
@@ -48,14 +66,19 @@ export default function ModulesPage() {
 
         <div className="flex items-center gap-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
           <div className="text-center">
-            <p className="text-2xl font-bold text-primary">1 / {modules.length}</p>
+            <p className="text-2xl font-bold text-primary">
+              {completedCount} / {modules.length}
+            </p>
             <p className="text-xs text-muted-foreground">modules terminés</p>
           </div>
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary" style={{ width: `${(1 / modules.length) * 100}%` }} />
+            <div
+              className="h-full rounded-full bg-primary transition-all"
+              style={{ width: `${completedRatio * 100}%` }}
+            />
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-foreground">100 XP</p>
+            <p className="text-2xl font-bold text-foreground">{totalXp} XP</p>
             <p className="text-xs text-muted-foreground">gagnés</p>
           </div>
         </div>
@@ -65,6 +88,7 @@ export default function ModulesPage() {
             const cfg = statusConfig[mod.status as keyof typeof statusConfig]
             const StatusIcon = cfg.icon
             const isLocked = mod.status === "locked"
+            const isCompleted = completedModuleIds.includes(mod.id)
 
             return (
               <button
@@ -89,7 +113,15 @@ export default function ModulesPage() {
                     </div>
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-foreground leading-snug">{mod.title}</h3>
+                        <div className="space-y-1">
+                          <h3 className="font-semibold text-foreground leading-snug">{mod.title}</h3>
+                          {isCompleted && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Terminé
+                            </span>
+                          )}
+                        </div>
                         {!isLocked && <ChevronRight className="size-4 text-muted-foreground flex-shrink-0 mt-0.5" />}
                       </div>
                       <p className="text-sm text-muted-foreground leading-relaxed">{mod.description}</p>
@@ -121,11 +153,6 @@ export default function ModulesPage() {
 
   // vue cours plein écran
   const pct = totalSteps > 0 ? Math.round((stepsDone / totalSteps) * 100) : 0
-
-  if (completed && !celebrate) {
-    // simple déclencheur d'animation (sans hook)
-    setCelebrate(true)
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50">
