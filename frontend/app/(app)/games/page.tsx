@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { awardXp } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 
 type Level = {
 	id: number
@@ -90,6 +91,7 @@ export default function GamesPage() {
 	const [awarded, setAwarded] = useState(false)
 	const router = useRouter()
 	const [, startTransition] = useTransition()
+	const { addXp } = useXp()
 
 	const current = levels[index]
 
@@ -151,6 +153,7 @@ export default function GamesPage() {
 			router.refresh()
 			return
 		}
+		addXp(xpEarned)
 		startTransition(() => {
 			awardXp({ amount: xpEarned, source: "game:detective-ia" })
 			router.refresh()
@@ -225,10 +228,7 @@ export default function GamesPage() {
 							className="w-full h-[320px] object-cover"
 						/>
 					</div>
-					<p className="text-xs text-muted-foreground">
-						Place tes images dans `frontend/public/images/detective-ia/` en gardant les noms indiqués pour un affichage automatique.
-					</p>
-				</CardContent>
+					</CardContent>
 			</Card>
 
 			{!confirmed ? (

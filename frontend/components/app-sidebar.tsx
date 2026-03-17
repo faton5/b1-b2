@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session"
 import { signOut } from "@/lib/auth.actions"
 import { isTeacherEmail } from "@/lib/roles"
 import { SidebarNavLink } from "@/components/sidebar-nav-link"
+import { SidebarXp } from "@/components/sidebar-xp"
 import {
   LayoutDashboard,
   BookOpen,
@@ -11,7 +12,6 @@ import {
   Trophy,
   LogOut,
   ShieldCheck,
-  Star,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -28,8 +28,6 @@ export async function AppSidebar() {
   const navItems = isTeacher
     ? [{ label: "Tableau de bord", href: "/dashboard", icon: "dashboard" }, ...publicNavItems]
     : publicNavItems
-  const xpToNextLevel = (user?.level ?? 1) * 200
-  const xpPercent = Math.min(100, Math.round(((user?.xp ?? 0) / xpToNextLevel) * 100))
 
   return (
     <aside className="fixed inset-y-0 left-0 w-64 flex flex-col bg-card border-r border-border z-40">
@@ -55,21 +53,7 @@ export async function AppSidebar() {
       {user ? (
         <div className="px-3 py-4 border-t border-border space-y-3">
           {/* XP bar */}
-          <div className="px-2 space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="flex items-center gap-1 font-medium text-foreground">
-                <Star className="size-3 text-yellow-500" />
-                Niveau {user.level}
-              </span>
-              <span className="text-muted-foreground">{user.xp} / {xpToNextLevel} XP</span>
-            </div>
-            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${xpPercent}%` }}
-              />
-            </div>
-          </div>
+          <SidebarXp />
 
           {/* Avatar + name + logout */}
           <div className="flex items-center gap-3 px-2">

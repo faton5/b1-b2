@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { awardXp } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 
 const modules = [
   {
@@ -70,6 +71,7 @@ const statusConfig = {
 export default function ModulesPage() {
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const { addXp } = useXp()
   const [moduleStates, setModuleStates] = useState(() =>
     modules.map((mod) => ({ ...mod }))
   )
@@ -98,6 +100,7 @@ export default function ModulesPage() {
       return next
     })
 
+    addXp(module.xp)
     startTransition(() => {
       awardXp({ amount: module.xp, source: `module:${module.id}` })
       router.refresh()

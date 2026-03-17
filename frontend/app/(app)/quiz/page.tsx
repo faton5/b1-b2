@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { recordQuizAnswer } from "@/lib/guest.actions"
 import { awardXp } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 
 type Question = {
   id: number
@@ -112,6 +113,7 @@ export default function QuizPage() {
 	const [awarded, setAwarded] = useState(false)
 	const router = useRouter()
 	const [, startTransition] = useTransition()
+	const { addXp } = useXp()
 
   const current = questions[index]
   const isCorrect = selected === current.answer
@@ -129,6 +131,7 @@ export default function QuizPage() {
 			router.refresh()
 			return
 		}
+		addXp(xpEarned)
 		startTransition(() => {
 			awardXp({ amount: xpEarned, source: "quiz:detectia-quiz-1" })
 			router.refresh()
