@@ -1,184 +1,256 @@
 "use client"
 
-import { useState } from "react"
-import { CheckCircle2, XCircle, RotateCcw, Zap, Trophy, Brain } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-const rounds = [
-  {
-    text: "Les scientifiques ont découvert qu'écouter de la musique classique augmenterait de façon permanente le QI des enfants de 15 points selon une étude de l'Université de Cambridge publiée ce matin.",
-    isAI: true,
-    explication: "Ce texte présente plusieurs marqueurs IA : affirmation très précise (\"15 points\"), source crédible mais invérifiable, ton assertif sans nuance ni lien vers la source.",
-  },
-  {
-    text: "J'ai passé mon week-end à tenter de réparer mon vélo. La roue arrière refusait de rester gonflée — j'ai changé la chambre à air deux fois avant de réaliser que la valve était tordue depuis le début.",
-    isAI: false,
-    explication: "Ce texte est humain : il y a une narration personnelle, une anecdote vécue avec des détails concrets et une progression logique propre à une vraie expérience.",
-  },
-  {
-    text: "La consommation quotidienne de café noir réduit le risque de diabète de type 2 de 23% selon une méta-analyse portant sur 1,2 million de participants. Cette découverte révolutionnaire change les recommandations nutritionnelles mondiales.",
-    isAI: true,
-    explication: "Chiffres très précis, superlatifs (\"révolutionnaire\", \"mondiales\"), absence de nuance ou de contexte — autant de signes d'un texte généré automatiquement pour sembler crédible.",
-  },
-  {
-    text: "Le chat de ma voisine a encore renversé son pot de fleurs sur mon balcon. La troisième fois ce mois-ci. J'hésite entre lui construire une barrière ou accepter que le chat a tout simplement décidé que mon balcon lui appartient.",
-    isAI: false,
-    explication: "Ton conversationnel, humour subtil, situation concrète et anodine — ce type de texte avec ses hésitations et son ironie légère est typiquement humain.",
-  },
-  {
-    text: "Des experts en neurosciences affirment qu'utiliser votre téléphone après 22h détruit définitivement vos neurones préfrontaux et cause des dommages irréversibles sur la mémoire à long terme.",
-    isAI: true,
-    explication: "Formulation alarmiste, généralisation excessive (\"définitivement\", \"irréversibles\"), sans source précise ni nuance scientifique — caractéristiques fréquentes de contenu IA désinformatif.",
-  },
+type Level = {
+	id: number
+	titre: string
+	difficulte: "Facile" | "Moyenne" | "Difficile"
+	imageSrc: string
+	imageAlt: string
+	isAI: boolean
+	correction: string
+}
+
+const GAME_TIME_SECONDS = 30
+
+const levels: Level[] = [
+	{
+		id: 1,
+		titre: "Le faux influenceur",
+		difficulte: "Facile",
+		imageSrc: "/images/detective-ia/niveau-1-faux-influenceur.jpg",
+		imageAlt: "Un homme souriant boit un café en terrasse",
+		isAI: true,
+		correction:
+			"Bien vu ! Compter les doigts est le premier réflexe du détective. L'IA générative se trompe très souvent sur l'anatomie humaine.",
+	},
+	{
+		id: 2,
+		titre: "Le marcheur sur l'eau",
+		difficulte: "Moyenne",
+		imageSrc: "/images/detective-ia/niveau-2-marcheur-eau.jpg",
+		imageAlt: "Une personne marche sur un immense miroir naturel",
+		isAI: false,
+		correction:
+			"Piège ! C'est une vraie photo sans aucun trucage. Quand il pleut, ce désert ultra-plat en Bolivie se transforme en un immense miroir naturel. Tout n'est pas faux sur Internet !",
+	},
+	{
+		id: 3,
+		titre: "La manifestation",
+		difficulte: "Facile",
+		imageSrc: "/images/detective-ia/niveau-3-manifestation.jpg",
+		imageAlt: "Une foule tient une grande pancarte jaune",
+		isAI: true,
+		correction:
+			"Exact ! L'IA a encore beaucoup de mal à générer du texte lisible. Si les mots sur les affiches fondent ou n'ont aucun sens, l'image a été générée par un ordinateur.",
+	},
+	{
+		id: 4,
+		titre: "Le chien géant",
+		difficulte: "Difficile",
+		imageSrc: "/images/detective-ia/niveau-4-chien-geant.jpg",
+		imageAlt: "Un chien paraît gigantesque à côté d'un humain",
+		isAI: false,
+		correction:
+			"Super coup d'œil ! Ce n'est pas de l'IA, c'est juste le placement de l'appareil photo. Le chien est assis sur un muret très près de l'objectif, alors que l'homme est loin derrière.",
+	},
+	{
+		id: 5,
+		titre: "Le reflet impossible",
+		difficulte: "Difficile",
+		imageSrc: "/images/detective-ia/niveau-5-reflet-impossible.jpg",
+		imageAlt: "Une femme se regarde dans un miroir de salle de bain",
+		isAI: true,
+		correction:
+			"Excellent ! L'IA génère les objets indépendamment les uns des autres. Elle oublie très souvent de respecter les lois de la physique pour les reflets dans les miroirs ou les vitres.",
+	},
 ]
 
+function difficultyStyle(level: Level["difficulte"]) {
+	if (level === "Facile") return "bg-green-100 text-green-700"
+	if (level === "Moyenne") return "bg-yellow-100 text-yellow-700"
+	return "bg-red-100 text-red-700"
+}
+
 export default function GamesPage() {
-  const [round, setRound] = useState(0)
-  const [answered, setAnswered] = useState(false)
-  const [userChoice, setUserChoice] = useState<boolean | null>(null)
-  const [score, setScore] = useState(0)
-  const [finished, setFinished] = useState(false)
+	const [index, setIndex] = useState(0)
+	const [selected, setSelected] = useState<boolean | null>(null)
+	const [confirmed, setConfirmed] = useState(false)
+	const [score, setScore] = useState(0)
+	const [finished, setFinished] = useState(false)
+	const [timeLeft, setTimeLeft] = useState(GAME_TIME_SECONDS)
+	const [timeoutRound, setTimeoutRound] = useState(false)
 
-  const current = rounds[round]
+	const current = levels[index]
 
-  function handleAnswer(choice: boolean) {
-    if (answered) return
-    setUserChoice(choice)
-    setAnswered(true)
-    if (choice === current.isAI) setScore((s) => s + 1)
-  }
+	useEffect(() => {
+		if (finished || confirmed) return
+		if (timeLeft <= 0) {
+			setConfirmed(true)
+			setTimeoutRound(true)
+			return
+		}
 
-  function handleNext() {
-    if (round < rounds.length - 1) {
-      setRound((r) => r + 1)
-      setAnswered(false)
-      setUserChoice(null)
-    } else {
-      setFinished(true)
-    }
-  }
+		const timerId = setTimeout(() => setTimeLeft((v) => v - 1), 1000)
+		return () => clearTimeout(timerId)
+	}, [timeLeft, confirmed, finished])
 
-  function handleReset() {
-    setRound(0)
-    setAnswered(false)
-    setUserChoice(null)
-    setScore(0)
-    setFinished(false)
-  }
+	const progress = useMemo(() => {
+		if (levels.length === 0) return 0
+		return ((index + (confirmed ? 1 : 0)) / levels.length) * 100
+	}, [index, confirmed])
 
-  const isCorrect = userChoice === current.isAI
-  const xpGained = score * 30
+	function handleAnswer(choiceIsAI: boolean) {
+		if (confirmed) return
+		setSelected(choiceIsAI)
+		setConfirmed(true)
+		if (choiceIsAI === current.isAI) {
+			setScore((prev) => prev + 1)
+		}
+	}
 
-  if (finished) {
-    return (
-      <div className="p-8 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-        <div className="size-20 rounded-full bg-primary/10 flex items-center justify-center">
-          <Trophy className="size-10 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Partie terminée !</h1>
-          <p className="text-muted-foreground mt-1">Tu as terminé le mini-jeu Spot the Fake.</p>
-        </div>
-        <Card className="w-full">
-          <CardContent className="pt-6 space-y-4">
-            <div className="text-5xl font-bold text-primary">{score} / {rounds.length}</div>
-            <p className="text-muted-foreground">textes bien classifiés</p>
-            <div className="flex items-center justify-center gap-2 text-lg font-semibold text-foreground">
-              <Zap className="size-5 text-primary" />
-              +{xpGained} XP gagnés
-            </div>
-          </CardContent>
-        </Card>
-        <Button onClick={handleReset} variant="outline" className="gap-2">
-          <RotateCcw className="size-4" />
-          Rejouer
-        </Button>
-      </div>
-    )
-  }
+	function handleNext() {
+		if (index < levels.length - 1) {
+			setIndex((prev) => prev + 1)
+			setSelected(null)
+			setConfirmed(false)
+			setTimeLeft(GAME_TIME_SECONDS)
+			setTimeoutRound(false)
+		} else {
+			setFinished(true)
+		}
+	}
 
-  return (
-    <div className="p-8 max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-start gap-3">
-        <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Brain className="size-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Spot the Fake</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Ce texte est-il écrit par un humain ou généré par IA ?</p>
-        </div>
-      </div>
+	function handleRestart() {
+		setIndex(0)
+		setSelected(null)
+		setConfirmed(false)
+		setScore(0)
+		setFinished(false)
+		setTimeLeft(GAME_TIME_SECONDS)
+		setTimeoutRound(false)
+	}
 
-      {/* Progress */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground mb-1">
-        <span>Texte {round + 1} / {rounds.length}</span>
-        <span className="font-medium text-foreground">{score} bonne{score > 1 ? "s" : ""} réponse{score > 1 ? "s" : ""}</span>
-      </div>
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${(round / rounds.length) * 100}%` }}
-        />
-      </div>
+	const isCorrect = selected === current.isAI
 
-      {/* Text card */}
-      <Card className="border-2 border-border">
-        <CardContent className="pt-6 pb-6">
-          <p className="text-foreground leading-relaxed text-base">{'"'}{current.text}{'"'}</p>
-        </CardContent>
-      </Card>
+	if (finished) {
+		return (
+			<div className="p-6 max-w-2xl mx-auto min-h-[70vh] flex items-center justify-center">
+				<Card className="w-full text-center">
+					<CardHeader>
+						<div className="mx-auto mb-2 size-14 rounded-full bg-primary/10 flex items-center justify-center">
+							<Trophy className="size-7 text-primary" />
+						</div>
+						<CardTitle>Détective IA — Mission terminée</CardTitle>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<p className="text-4xl font-bold text-primary">
+							{score} / {levels.length}
+						</p>
+						<p className="text-muted-foreground">bonnes réponses</p>
+						<Button onClick={handleRestart} className="gap-2 w-full" size="lg">
+							<RotateCcw className="size-4" />
+							Rejouer
+						</Button>
+					</CardContent>
+				</Card>
+			</div>
+		)
+	}
 
-      {/* Buttons */}
-      {!answered ? (
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => handleAnswer(false)}
-            className="border-2 hover:border-secondary hover:bg-secondary/10 h-14 text-base font-semibold"
-          >
-            Humain
-          </Button>
-          <Button
-            size="lg"
-            onClick={() => handleAnswer(true)}
-            className="h-14 text-base font-semibold"
-          >
-            Généré par IA
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Result */}
-          <div className={cn(
-            "rounded-xl border px-4 py-4 space-y-2",
-            isCorrect
-              ? "bg-primary/10 border-primary/20"
-              : "bg-destructive/10 border-destructive/20"
-          )}>
-            <div className="flex items-center gap-2 font-semibold">
-              {isCorrect
-                ? <><CheckCircle2 className="size-5 text-primary" /><span className="text-primary">Bonne réponse ! +30 XP</span></>
-                : <><XCircle className="size-5 text-destructive" /><span className="text-destructive">Mauvaise réponse</span></>
-              }
-            </div>
-            <p className="text-sm text-foreground/80 leading-relaxed">
-              <span className="font-medium">Ce texte était </span>
-              <span className={cn("font-bold", current.isAI ? "text-primary" : "text-secondary-foreground")}>
-                {current.isAI ? "généré par IA" : "écrit par un humain"}.
-              </span>
-              {" "}{current.explication}
-            </p>
-          </div>
+	return (
+		<div className="p-6 max-w-3xl mx-auto space-y-5">
+			<div className="flex items-start gap-3">
+				<div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+					<Brain className="size-5 text-primary" />
+				</div>
+				<div className="flex-1">
+					<h1 className="text-2xl font-bold text-foreground">Détective IA</h1>
+					<p className="text-muted-foreground text-sm">Devine si l'image est une vraie photo ou une image générée par IA</p>
+				</div>
+			</div>
 
-          <Button onClick={handleNext} className="w-full" size="lg">
-            {round < rounds.length - 1 ? "Texte suivant" : "Voir les résultats"}
-          </Button>
-        </div>
-      )}
-    </div>
-  )
+			<div className="h-2 rounded-full bg-muted overflow-hidden">
+				<div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
+			</div>
+
+			<div className="flex items-center justify-between text-sm">
+				<span className="text-muted-foreground">Niveau {index + 1} / {levels.length}</span>
+				<span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", difficultyStyle(current.difficulte))}>
+					{current.difficulte}
+				</span>
+			</div>
+
+			<div className="flex items-center gap-2 text-sm text-muted-foreground">
+				<Clock3 className={cn("size-4", timeLeft <= 10 && !confirmed ? "text-destructive" : "text-muted-foreground")} />
+				<span className={cn("font-semibold", timeLeft <= 10 && !confirmed ? "text-destructive" : "text-foreground")}>{timeLeft}s</span>
+			</div>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-lg">{current.titre}</CardTitle>
+				</CardHeader>
+				<CardContent className="space-y-4">
+					<div className="rounded-xl overflow-hidden border bg-muted/30">
+						<img
+							src={current.imageSrc}
+							alt={current.imageAlt}
+							className="w-full h-[320px] object-cover"
+						/>
+					</div>
+					<p className="text-xs text-muted-foreground">
+						Place tes images dans `frontend/public/images/detective-ia/` en gardant les noms indiqués pour un affichage automatique.
+					</p>
+				</CardContent>
+			</Card>
+
+			{!confirmed ? (
+				<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+					<Button size="lg" variant="outline" onClick={() => handleAnswer(false)}>
+						VRAIE PHOTO
+					</Button>
+					<Button size="lg" onClick={() => handleAnswer(true)}>
+						CRÉÉE PAR IA
+					</Button>
+				</div>
+			) : (
+				<Card className={cn("border", isCorrect ? "border-primary/20 bg-primary/5" : "border-destructive/20 bg-destructive/5")}>
+					<CardContent className="pt-5 space-y-3">
+						<div className="flex items-center gap-2 font-semibold">
+							{timeoutRound ? (
+								<>
+									<XCircle className="size-5 text-destructive" />
+									<span className="text-destructive">Temps écoulé !</span>
+								</>
+							) : isCorrect ? (
+								<>
+									<CheckCircle2 className="size-5 text-primary" />
+									<span className="text-primary">Bonne réponse</span>
+								</>
+							) : (
+								<>
+									<XCircle className="size-5 text-destructive" />
+									<span className="text-destructive">Mauvaise réponse</span>
+								</>
+							)}
+						</div>
+
+						<p className="text-sm leading-relaxed text-foreground/90">
+							Réponse attendue : <span className="font-semibold">{current.isAI ? "CRÉÉE PAR IA" : "VRAIE PHOTO"}</span>
+						</p>
+						<p className="text-sm leading-relaxed text-foreground/85">{current.correction}</p>
+
+						<Button onClick={handleNext} className="w-full" size="lg">
+							{index < levels.length - 1 ? "Niveau suivant" : "Voir mes résultats"}
+						</Button>
+					</CardContent>
+				</Card>
+			)}
+		</div>
+	)
 }
