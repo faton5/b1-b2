@@ -1,5 +1,3 @@
-import { getSession } from "@/lib/session"
-import { redirect } from "next/navigation"
 import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -65,9 +63,6 @@ const statusConfig = {
 }
 
 export default async function ModulesPage() {
-  const user = await getSession()
-  if (!user) redirect("/login")
-
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <div>

@@ -48,6 +48,39 @@ const schema = `
     xp_earned INTEGER NOT NULL,
     completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS guest_students (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    class_code TEXT,
+    session_token TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS quiz_answers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    guest_id INTEGER REFERENCES guest_students(id) ON DELETE CASCADE,
+    quiz_id TEXT NOT NULL,
+    question_index INTEGER NOT NULL,
+    question_text TEXT NOT NULL,
+    selected_answer TEXT NOT NULL,
+    correct_answer TEXT NOT NULL,
+    is_correct INTEGER NOT NULL,
+    answered_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS game_sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    guest_id INTEGER REFERENCES guest_students(id) ON DELETE CASCADE,
+    game_id TEXT NOT NULL,
+    score INTEGER NOT NULL,
+    total_rounds INTEGER NOT NULL,
+    xp_earned INTEGER NOT NULL,
+    played_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `
 
 function resolveDatabasePath(databaseUrl: string): string {
@@ -103,6 +136,13 @@ if (databasePath !== ":memory:") {
 
 const db = new DatabaseSync(databasePath)
 db.exec(schema)
+
+// Migration idempotente : ajoute la colonne role si elle n'existe pas encore
+try {
+  db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'student'`)
+} catch {
+  // La colonne existe déjà — attendu à chaque redémarrage après le premier
+}
 
 async function sql(strings: TemplateStringsArray, ...values: SqlValue[]): Promise<SqlRow[]> {
   const query = buildQuery(strings, values)
