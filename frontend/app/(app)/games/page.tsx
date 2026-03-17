@@ -89,6 +89,10 @@ export default function GamesPage() {
   const [finished, setFinished] = useState(false)
   const [timeLeft, setTimeLeft] = useState(GAME_TIME_SECONDS)
   const [timeoutRound, setTimeoutRound] = useState(false)
+  const [awarded, setAwarded] = useState(false)
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const { addXp } = useXp()
 
   const current = levels[index]
 
@@ -109,6 +113,21 @@ export default function GamesPage() {
     return ((index + (confirmed ? 1 : 0)) / levels.length) * 100
   }, [index, confirmed])
 
+  function grantXp(finalScore: number) {
+    if (awarded) return
+    setAwarded(true)
+    const xpEarned = finalScore * 80
+    if (xpEarned <= 0) {
+      router.refresh()
+      return
+    }
+    addXp(xpEarned)
+    startTransition(() => {
+      awardXp({ amount: xpEarned, source: "game:detective-ia" })
+      router.refresh()
+    })
+  }
+
   function handleAnswer(choiceIsAI: boolean) {
     if (confirmed) return
     setSelected(choiceIsAI)
@@ -120,6 +139,7 @@ export default function GamesPage() {
 
   function handleNext() {
     if (index + 1 >= levels.length) {
+      grantXp(score)
       setFinished(true)
     } else {
       setIndex((prev) => prev + 1)
@@ -138,6 +158,7 @@ export default function GamesPage() {
     setFinished(false)
     setTimeLeft(GAME_TIME_SECONDS)
     setTimeoutRound(false)
+    setAwarded(false)
   }
 
   // ─── Écran résultats ───────────────────────────────────────────────────────
