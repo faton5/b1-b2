@@ -31,8 +31,8 @@ export default function LoginPage() {
         {/* Card */}
         <Card className="w-full shadow-md border-border">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Connexion</CardTitle>
-            <CardDescription>Entre ton email et mot de passe pour accéder à ton compte.</CardDescription>
+            <CardTitle className="text-xl">Connexion enseignant</CardTitle>
+            <CardDescription>Acces reserve aux enseignants (@prof.com).</CardDescription>
           </CardHeader>
 
           <form action={formAction}>

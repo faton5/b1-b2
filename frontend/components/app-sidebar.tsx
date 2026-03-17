@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getSession } from "@/lib/session"
 import { signOut } from "@/lib/auth.actions"
+import { isTeacherEmail } from "@/lib/roles"
 import { SidebarNavLink } from "@/components/sidebar-nav-link"
 import {
   LayoutDashboard,
@@ -14,8 +15,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const navItems = [
-  { label: "Tableau de bord", href: "/dashboard", icon: "dashboard" },
+const publicNavItems = [
   { label: "Modules", href: "/modules", icon: "book" },
   { label: "Quiz", href: "/quiz", icon: "quiz" },
   { label: "Mini-jeux", href: "/games", icon: "game" },
@@ -24,6 +24,10 @@ const navItems = [
 
 export async function AppSidebar() {
   const user = await getSession()
+  const isTeacher = isTeacherEmail(user?.email)
+  const navItems = isTeacher
+    ? [{ label: "Tableau de bord", href: "/dashboard", icon: "dashboard" }, ...publicNavItems]
+    : publicNavItems
   const xpToNextLevel = (user?.level ?? 1) * 200
   const xpPercent = Math.min(100, Math.round(((user?.xp ?? 0) / xpToNextLevel) * 100))
 

@@ -1,5 +1,3 @@
-import { getSession } from "@/lib/session"
-import { redirect } from "next/navigation"
 import { Trophy, Lock, Star, BookOpen, HelpCircle, Gamepad2, Zap, ShieldCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -64,9 +62,6 @@ const badges = [
 ]
 
 export default async function BadgesPage() {
-  const user = await getSession()
-  if (!user) redirect("/login")
-
   const unlocked = badges.filter((b) => b.unlocked).length
 
   return (

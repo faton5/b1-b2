@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useTransition } from "react"
 import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { recordQuizAnswer } from "@/lib/guest.actions"
 
 const questions = [
   {
@@ -59,6 +60,7 @@ export default function QuizPage() {
   const [confirmed, setConfirmed] = useState(false)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [, startTransition] = useTransition()
 
   const question = questions[currentQ]
   const isCorrect = selected === question.answer
@@ -73,6 +75,19 @@ export default function QuizPage() {
     if (!confirmed) {
       setConfirmed(true)
       if (selected === question.answer) setScore((s) => s + 1)
+
+      const selectedAnswer = question.options[selected]
+      const correctAnswer = question.options[question.answer]
+      startTransition(() => {
+        recordQuizAnswer({
+          quizId: "detectia-quiz-1",
+          questionIndex: currentQ,
+          questionText: question.question,
+          selectedAnswer,
+          correctAnswer,
+          isCorrect: selected === question.answer,
+        })
+      })
     } else {
       if (currentQ < questions.length - 1) {
         setCurrentQ((q) => q + 1)

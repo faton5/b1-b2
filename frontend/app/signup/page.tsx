@@ -31,8 +31,8 @@ export default function SignupPage() {
         {/* Card */}
         <Card className="w-full shadow-md border-border">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Créer un compte</CardTitle>
-            <CardDescription>Rejoins DetectIA et commence ton aventure dès maintenant.</CardDescription>
+            <CardTitle className="text-xl">Créer un compte enseignant</CardTitle>
+            <CardDescription>Les comptes eleves ne sont pas requis pour acceder au site.</CardDescription>
           </CardHeader>
 
           <form action={formAction}>

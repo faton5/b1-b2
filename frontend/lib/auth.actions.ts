@@ -5,6 +5,7 @@ import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
 import { randomBytes } from "crypto"
 import sql from "@/lib/db"
+import { isTeacherEmail } from "@/lib/roles"
 
 type AuthActionState = {
   error: string
@@ -17,6 +18,10 @@ export async function signUp(_: AuthActionState, formData: FormData) {
 
   if (!username || !email || !password) {
     return { error: "Tous les champs sont requis." }
+  }
+
+  if (!isTeacherEmail(email)) {
+    return { error: "Compte enseignant requis (@prof.com)." }
   }
 
   const existing = await sql`SELECT id FROM users WHERE email = ${email} OR username = ${username} LIMIT 1`
@@ -41,6 +46,10 @@ export async function signIn(_: AuthActionState, formData: FormData) {
 
   if (!email || !password) {
     return { error: "Tous les champs sont requis." }
+  }
+
+  if (!isTeacherEmail(email)) {
+    return { error: "Acces reserve aux enseignants (@prof.com)." }
   }
 
   const rows = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`
