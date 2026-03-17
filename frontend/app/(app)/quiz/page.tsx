@@ -1,16 +1,13 @@
 "use client"
 
-<<<<<<< HEAD
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { BookOpenCheck, CheckCircle2, ChevronRight, RotateCcw, Trophy, XCircle } from "lucide-react"
-=======
-import { useState, useTransition } from "react"
-import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Zap } from "lucide-react"
->>>>>>> 72653aca8305be284e7a071434ccc9273a14b3e1
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { recordQuizAnswer } from "@/lib/guest.actions"
+import { awardXp } from "@/lib/progression.actions"
 
 type Question = {
 	id: number
@@ -113,20 +110,14 @@ const questions: Question[] = [
 ]
 
 export default function QuizPage() {
-<<<<<<< HEAD
 	const [index, setIndex] = useState(0)
 	const [selected, setSelected] = useState<number | null>(null)
 	const [confirmed, setConfirmed] = useState(false)
 	const [score, setScore] = useState(0)
 	const [finished, setFinished] = useState(false)
-=======
-  const [currentQ, setCurrentQ] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [confirmed, setConfirmed] = useState(false)
-  const [score, setScore] = useState(0)
-  const [finished, setFinished] = useState(false)
-  const [, startTransition] = useTransition()
->>>>>>> 72653aca8305be284e7a071434ccc9273a14b3e1
+	const [awarded, setAwarded] = useState(false)
+	const router = useRouter()
+	const [, startTransition] = useTransition()
 
 	const current = questions[index]
 	const isCorrect = selected === current.answer
@@ -136,34 +127,41 @@ export default function QuizPage() {
 		return ((index + (confirmed ? 1 : 0)) / questions.length) * 100
 	}, [index, confirmed])
 
-  function handleConfirm() {
-    if (selected === null) return
-    if (!confirmed) {
-      setConfirmed(true)
-      if (selected === question.answer) setScore((s) => s + 1)
+	function grantXp(finalScore: number) {
+		if (awarded) return
+		setAwarded(true)
+		const xpEarned = finalScore * 30
+		if (xpEarned <= 0) {
+			router.refresh()
+			return
+		}
+		startTransition(() => {
+			awardXp({ amount: xpEarned, source: "quiz:detectia-quiz-1" })
+			router.refresh()
+		})
+	}
 
-      const selectedAnswer = question.options[selected]
-      const correctAnswer = question.options[question.answer]
-      startTransition(() => {
-        recordQuizAnswer({
-          quizId: "detectia-quiz-1",
-          questionIndex: currentQ,
-          questionText: question.question,
-          selectedAnswer,
-          correctAnswer,
-          isCorrect: selected === question.answer,
-        })
-      })
-    } else {
-      if (currentQ < questions.length - 1) {
-        setCurrentQ((q) => q + 1)
-        setSelected(null)
-        setConfirmed(false)
-      } else {
-        setFinished(true)
-      }
-    }
-  }
+	function handleValidate() {
+		if (selected === null || confirmed) return
+		setConfirmed(true)
+
+		if (selected === current.answer) {
+			setScore((prev) => prev + 1)
+		}
+
+		const selectedAnswer = current.options[selected]
+		const correctAnswer = current.options[current.answer]
+		startTransition(() => {
+			recordQuizAnswer({
+				quizId: "detectia-quiz-1",
+				questionIndex: index,
+				questionText: current.question,
+				selectedAnswer,
+				correctAnswer,
+				isCorrect: selected === current.answer,
+			})
+		})
+	}
 
 	function handleNext() {
 		if (!confirmed) return
@@ -173,6 +171,7 @@ export default function QuizPage() {
 			setConfirmed(false)
 		} else {
 			setFinished(true)
+			grantXp(score)
 		}
 	}
 
@@ -182,6 +181,7 @@ export default function QuizPage() {
 		setConfirmed(false)
 		setScore(0)
 		setFinished(false)
+		setAwarded(false)
 	}
 
 	if (finished) {
@@ -199,6 +199,7 @@ export default function QuizPage() {
 							{score} / {questions.length}
 						</p>
 						<p className="text-muted-foreground">bonnes réponses</p>
+						<p className="text-sm text-muted-foreground">+{score * 30} XP gagnés</p>
 						<Button onClick={handleRestart} className="w-full gap-2" size="lg">
 							<RotateCcw className="size-4" />
 							Recommencer

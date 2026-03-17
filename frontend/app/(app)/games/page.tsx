@@ -1,10 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { awardXp } from "@/lib/progression.actions"
 
 type Level = {
 	id: number
@@ -85,6 +87,9 @@ export default function GamesPage() {
 	const [finished, setFinished] = useState(false)
 	const [timeLeft, setTimeLeft] = useState(GAME_TIME_SECONDS)
 	const [timeoutRound, setTimeoutRound] = useState(false)
+	const [awarded, setAwarded] = useState(false)
+	const router = useRouter()
+	const [, startTransition] = useTransition()
 
 	const current = levels[index]
 
@@ -123,6 +128,7 @@ export default function GamesPage() {
 			setTimeoutRound(false)
 		} else {
 			setFinished(true)
+			grantXp(score)
 		}
 	}
 
@@ -134,6 +140,21 @@ export default function GamesPage() {
 		setFinished(false)
 		setTimeLeft(GAME_TIME_SECONDS)
 		setTimeoutRound(false)
+		setAwarded(false)
+	}
+
+	function grantXp(finalScore: number) {
+		if (awarded) return
+		setAwarded(true)
+		const xpEarned = finalScore * 80
+		if (xpEarned <= 0) {
+			router.refresh()
+			return
+		}
+		startTransition(() => {
+			awardXp({ amount: xpEarned, source: "game:detective-ia" })
+			router.refresh()
+		})
 	}
 
 	const isCorrect = selected === current.isAI
@@ -153,6 +174,7 @@ export default function GamesPage() {
 							{score} / {levels.length}
 						</p>
 						<p className="text-muted-foreground">bonnes réponses</p>
+						<p className="text-sm text-muted-foreground">+{score * 80} XP gagnés</p>
 						<Button onClick={handleRestart} className="gap-2 w-full" size="lg">
 							<RotateCcw className="size-4" />
 							Rejouer

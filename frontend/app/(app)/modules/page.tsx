@@ -1,7 +1,12 @@
+"use client"
+
+import { useMemo, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
+import { awardXp } from "@/lib/progression.actions"
 
 const modules = [
   {
@@ -62,7 +67,42 @@ const statusConfig = {
   locked: { label: "Verrouillé", color: "bg-muted text-muted-foreground", icon: Lock },
 }
 
-export default async function ModulesPage() {
+export default function ModulesPage() {
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const [moduleStates, setModuleStates] = useState(() =>
+    modules.map((mod) => ({ ...mod }))
+  )
+  const [awardedIds, setAwardedIds] = useState(() => new Set<number>())
+
+  const completedCount = useMemo(() => {
+    return moduleStates.filter((mod) => mod.status === "done").length
+  }, [moduleStates])
+
+  const totalXp = useMemo(() => {
+    return moduleStates.reduce((sum, mod) => (mod.status === "done" ? sum + mod.xp : sum), 0)
+  }, [moduleStates])
+
+  function handleCompleteModule(moduleId: number) {
+    const module = moduleStates.find((mod) => mod.id === moduleId)
+    if (!module || module.status !== "available") return
+    if (awardedIds.has(moduleId)) return
+
+    setModuleStates((prev) =>
+      prev.map((mod) => (mod.id === moduleId ? { ...mod, status: "done" } : mod))
+    )
+
+    setAwardedIds((prev) => {
+      const next = new Set(prev)
+      next.add(moduleId)
+      return next
+    })
+
+    startTransition(() => {
+      awardXp({ amount: module.xp, source: `module:${module.id}` })
+      router.refresh()
+    })
+  }
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8">
       <div>
@@ -73,29 +113,30 @@ export default async function ModulesPage() {
       {/* Progress summary */}
       <div className="flex items-center gap-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
         <div className="text-center">
-          <p className="text-2xl font-bold text-primary">1 / {modules.length}</p>
+          <p className="text-2xl font-bold text-primary">{completedCount} / {modules.length}</p>
           <p className="text-xs text-muted-foreground">modules terminés</p>
         </div>
         <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${(1 / modules.length) * 100}%` }} />
+          <div className="h-full rounded-full bg-primary" style={{ width: `${(completedCount / modules.length) * 100}%` }} />
         </div>
         <div className="text-center">
-          <p className="text-2xl font-bold text-foreground">100 XP</p>
+          <p className="text-2xl font-bold text-foreground">{totalXp} XP</p>
           <p className="text-xs text-muted-foreground">gagnés</p>
         </div>
       </div>
 
       {/* Module list */}
       <div className="space-y-3">
-        {modules.map((mod) => {
+        {moduleStates.map((mod) => {
           const cfg = statusConfig[mod.status as keyof typeof statusConfig]
           const StatusIcon = cfg.icon
           const isLocked = mod.status === "locked"
+          const canComplete = mod.status === "available"
 
           return (
             <Card
               key={mod.id}
-              className={`transition-shadow ${isLocked ? "opacity-60" : "hover:shadow-md cursor-pointer"}`}
+              className={`transition-shadow ${isLocked ? "opacity-60" : "hover:shadow-md"}`}
             >
               <CardContent className="pt-5 pb-5 flex items-start gap-4">
                 <div className={`size-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
@@ -122,6 +163,16 @@ export default async function ModulesPage() {
                     </span>
                   </div>
                 </div>
+                {canComplete && (
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => handleCompleteModule(mod.id)}
+                      className="text-xs font-semibold text-primary hover:text-primary/80"
+                    >
+                      Terminer
+                    </button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           )
