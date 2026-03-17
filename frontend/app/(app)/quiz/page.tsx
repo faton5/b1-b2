@@ -113,20 +113,12 @@ const questions: Question[] = [
 ]
 
 export default function QuizPage() {
-<<<<<<< HEAD
-	const [index, setIndex] = useState(0)
-	const [selected, setSelected] = useState<number | null>(null)
-	const [confirmed, setConfirmed] = useState(false)
-	const [score, setScore] = useState(0)
-	const [finished, setFinished] = useState(false)
-=======
   const [currentQ, setCurrentQ] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
   const [, startTransition] = useTransition()
->>>>>>> 72653aca8305be284e7a071434ccc9273a14b3e1
 
 	const current = questions[index]
 	const isCorrect = selected === current.answer
