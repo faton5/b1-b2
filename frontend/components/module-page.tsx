@@ -12,32 +12,36 @@ export function ModulePage() {
   const sections = [
     {
       id: 1,
-      title: 'Qu\'est-ce que l\'IA?',
-      content: 'L\'intelligence artificielle (IA) est un ensemble de technologies qui permettent à un ordinateur de reproduire des comportements intelligents. Les systèmes d\'IA modernes peuvent apprendre à partir de données et améliorer leurs performances au fil du temps.',
+      title: "Culture générale sur l'IA",
+      content:
+        "L'intelligence artificielle (IA) regroupe différents outils capables de traiter de grandes quantités de données pour reconnaître des motifs, faire des prédictions ou générer du contenu. Elle reste cependant limitée par ses données d'entraînement et ne possède ni conscience ni intentions propres.",
       icon: Brain,
-      completed: true
+      completed: true,
     },
     {
       id: 2,
-      title: 'Comment fonctionne le machine learning?',
-      content: 'Le machine learning est une branche de l\'IA où les programmes apprennent à partir d\'exemples au lieu d\'être programmés explicitement. L\'IA analyse de grandes quantités de données, identifie des motifs et fait des prédictions basées sur ces motifs.',
-      icon: Brain,
-      completed: true
+      title: "Générations d'IA : toujours vérifier",
+      content:
+        "Qu'il s'agisse de textes, d'images ou de vidéos, les modèles génératifs peuvent produire des résultats impressionnants mais parfois totalement faux. Il est indispensable de garder le réflexe de vérifier les faits, les sources et la cohérence avant de faire confiance.",
+      icon: AlertCircle,
+      completed: true,
     },
     {
       id: 3,
-      title: 'La génération de contenu',
-      content: 'Les modèles de langage comme les LLM (Large Language Models) peuvent générer du texte de manière très convaincante. Ils prédisent le mot suivant basé sur le contexte précédent, créant ainsi des phrases fluides mais parfois inexactes.',
+      title: "Fake news et amplification par l'IA",
+      content:
+        "Les systèmes d'IA peuvent générer et relayer des contenus trompeurs à grande échelle. Comprendre comment les fake news se propagent aide à garder une distance critique, à recouper l'information et à éviter de relayer des contenus douteux.",
       icon: BookOpen,
-      completed: false
+      completed: false,
     },
     {
       id: 4,
-      title: 'Les risques de la désinformation IA',
-      content: 'La désinformation générée par l\'IA peut être très convaincante et se propager rapidement. Elle peut contenir des erreurs factuelles, des biais ou intentionnellement tromper les lecteurs. Il est crucial de développer des compétences pour l\'identifier.',
-      icon: AlertCircle,
-      completed: false
-    }
+      title: "Bien utiliser l'IA au travail",
+      content:
+        "L'IA peut t'aider à gagner du temps, explorer des idées ou intégrer des fonctionnalités, mais elle ne doit pas remplacer ta réflexion. L'objectif est de l'utiliser comme un assistant qui augmente tes capacités, pas comme un pilote automatique qui décide à ta place.",
+      icon: Brain,
+      completed: false,
+    },
   ]
 
   return (
@@ -49,8 +53,8 @@ export function ModulePage() {
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-gray-900">Comment l\'IA génère du texte</h1>
-            <p className="text-sm text-gray-600">Module 2 sur 5</p>
+            <h1 className="text-lg font-bold text-gray-900">Comprendre et utiliser l&apos;IA de façon responsable</h1>
+            <p className="text-sm text-gray-600">Module 1 sur 8</p>
           </div>
           <Badge className="bg-blue-100 text-blue-700 border-blue-200">75% complété</Badge>
         </div>
@@ -66,13 +70,12 @@ export function ModulePage() {
             <div className="flex-1">
               <Badge className="mb-3 bg-blue-100 text-blue-700 border-blue-200">
                 <BookOpen className="w-3 h-3 mr-1" />
-                Module pédagogique
+                Module pédagogique – Sensibilisation IA
               </Badge>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Comment l\'IA génère du texte
-              </h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Comprendre et utiliser l&apos;IA de façon responsable</h1>
               <p className="text-gray-600 leading-relaxed">
-                Comprends les mécanismes derrière la génération de contenu IA et apprends à identifier les patterns caractéristiques des textes générés de manière suspecte.
+                Ce module t&apos;aide à comprendre ce qu&apos;est réellement l&apos;IA, à repérer ses limites et ses dérives possibles
+                (fake news, contenus trompeurs, dépendance), et à l&apos;utiliser comme un outil au service de ton apprentissage et de ton travail.
               </p>
             </div>
           </div>
@@ -147,19 +150,27 @@ export function ModulePage() {
           <ul className="space-y-3">
             <li className="flex items-start gap-3">
               <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <span className="text-gray-700">Les modèles IA prédisent le prochain mot basé sur le contexte précédent</span>
+              <span className="text-gray-700">
+                L&apos;IA n&apos;est pas infaillible : elle peut générer des erreurs, des biais ou des contenus totalement faux.
+              </span>
             </li>
             <li className="flex items-start gap-3">
               <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <span className="text-gray-700">Le texte généré peut être très fluide et convaincant, même s\'il contient des erreurs</span>
+              <span className="text-gray-700">
+                Il est essentiel de vérifier les sources, de recouper l&apos;information et de garder un esprit critique.
+              </span>
             </li>
             <li className="flex items-start gap-3">
               <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <span className="text-gray-700">Les patterns répétitifs et les phrases génériques sont des signes révélateurs</span>
+              <span className="text-gray-700">
+                L&apos;IA doit rester un assistant : c&apos;est à toi de comprendre, décider et assumer les choix finaux.
+              </span>
             </li>
             <li className="flex items-start gap-3">
               <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-              <span className="text-gray-700">Vérifier les sources et les faits est toujours important</span>
+              <span className="text-gray-700">
+                Préserver tes relations sociales et ta capacité de réflexion est plus important que tout gain de confort.
+              </span>
             </li>
           </ul>
         </Card>
