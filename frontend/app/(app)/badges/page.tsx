@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-import { BadgesPage } from "@/components/badges-page"
-
-export default function BadgesRoutePage() {
-	return <BadgesPage />
-=======
 import { Trophy, Lock, Star, BookOpen, HelpCircle, Gamepad2, Zap, ShieldCheck } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
@@ -134,6 +128,5 @@ export default async function BadgesPage() {
       </div>
     </div>
   )
->>>>>>> 72653aca8305be284e7a071434ccc9273a14b3e1
 }
 

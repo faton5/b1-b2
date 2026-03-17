@@ -1,12 +1,7 @@
 "use client"
 
-<<<<<<< HEAD
-import { useMemo, useState } from "react"
-import { BookOpenCheck, CheckCircle2, ChevronRight, RotateCcw, Trophy, XCircle } from "lucide-react"
-=======
 import { useState, useTransition } from "react"
 import { CheckCircle2, XCircle, ChevronRight, Trophy, RotateCcw, Zap } from "lucide-react"
->>>>>>> 72653aca8305be284e7a071434ccc9273a14b3e1
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
