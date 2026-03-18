@@ -1,87 +1,364 @@
 "use client"
 
-import { useEffect, useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { awardXp } from "@/lib/progression.actions"
-import { useXp } from "@/lib/xp-context"
 
 type Level = {
   id: number
   titre: string
   difficulte: "Facile" | "Moyenne" | "Difficile"
-  imageSrc: string
-  imageAlt: string
+  mediaType: "image" | "video"
+  mediaSrc: string
+  mediaAlt: string
   isAI: boolean
   correction: string
 }
 
-const GAME_TIME_SECONDS = 30
+const GAME_TIME_SECONDS = 60
+const CLIP_PREVIEW_SECONDS = 8
+const TOTAL_ROUNDS = 20
 
-const levels: Level[] = [
+const IMAGE_POOL: Omit<Level, "id" | "difficulte">[] = [
   {
-    id: 1,
-    titre: "Le faux influenceur",
-    difficulte: "Facile",
-    imageSrc: "/images/detective-ia/niveau-1-faux-influenceur.jpg",
-    imageAlt: "Un homme souriant boit un café en terrasse",
-    isAI: true,
-    correction:
-      "Bien vu ! Compter les doigts est le premier réflexe du détective. L'IA générative se trompe très souvent sur l'anatomie humaine.",
-  },
-  {
-    id: 2,
-    titre: "Le marcheur sur l'eau",
-    difficulte: "Moyenne",
-    imageSrc: "/images/detective-ia/niveau-2-marcheur-eau.jpg",
-    imageAlt: "Une personne marche sur un immense miroir naturel",
+    titre: "Montagne au lever du jour",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/417173/pexels-photo-417173.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Montagne réaliste",
     isAI: false,
-    correction:
-      "Piège ! C'est une vraie photo sans aucun trucage. Quand il pleut, ce désert ultra-plat en Bolivie se transforme en un immense miroir naturel. Tout n'est pas faux sur Internet !",
+    correction: "Indice : textures rocheuses et lumière cohérentes, contenu réel.",
   },
   {
-    id: 3,
-    titre: "La manifestation",
-    difficulte: "Facile",
-    imageSrc: "/images/detective-ia/niveau-3-manifestation.jpg",
-    imageAlt: "Une foule tient une grande pancarte jaune",
-    isAI: true,
-    correction:
-      "Exact ! L'IA a encore beaucoup de mal à générer du texte lisible. Si les mots sur les affiches fondent ou n'ont aucun sens, l'image a été générée par un ordinateur.",
-  },
-  {
-    id: 4,
-    titre: "Le chien géant",
-    difficulte: "Difficile",
-    imageSrc: "/images/detective-ia/niveau-4-chien-geant.jpg",
-    imageAlt: "Un chien paraît gigantesque à côté d'un humain",
+    titre: "Mer au soleil couchant",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/457882/pexels-photo-457882.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Mer et coucher de soleil",
     isAI: false,
-    correction:
-      "Super coup d'œil ! Ce n'est pas de l'IA, c'est juste le placement de l'appareil photo. Le chien est assis sur un muret très près de l'objectif, alors que l'homme est loin derrière.",
+    correction: "Indice : reflets naturels sur l'eau et dégradé du ciel réaliste.",
   },
   {
-    id: 5,
-    titre: "Le reflet impossible",
-    difficulte: "Difficile",
-    imageSrc: "/images/detective-ia/niveau-5-reflet-impossible.jpg",
-    imageAlt: "Une femme se regarde dans un miroir de salle de bain",
+    titre: "Forêt brumeuse",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/167684/pexels-photo-167684.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Forêt réelle",
+    isAI: false,
+    correction: "Indice : profondeur de champ et brume homogène, photo réelle.",
+  },
+  {
+    titre: "Cascade naturelle",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/414171/pexels-photo-414171.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Cascade en nature",
+    isAI: false,
+    correction: "Indice : eau et roches gardent une cohérence physique naturelle.",
+  },
+  {
+    titre: "Lac alpin",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/1054218/pexels-photo-1054218.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Lac de montagne",
+    isAI: false,
+    correction: "Indice : couleurs et perspective sont plausibles pour un vrai paysage.",
+  },
+  {
+    titre: "Dunes et ciel clair",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/189349/pexels-photo-189349.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Paysage désertique",
+    isAI: false,
+    correction: "Indice : ombres et grain du sable réalistes.",
+  },
+  {
+    titre: "Falaises océaniques",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/618833/pexels-photo-618833.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Falaises au bord de mer",
+    isAI: false,
+    correction: "Indice : relief et lumière restent cohérents.",
+  },
+  {
+    titre: "Vallée verte",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/132037/pexels-photo-132037.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Vallée naturelle",
+    isAI: false,
+    correction: "Indice : diversité des textures végétales naturelle.",
+  },
+  {
+    titre: "Rivière de montagne",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/460621/pexels-photo-460621.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Rivière réelle",
+    isAI: false,
+    correction: "Indice : reflets d'eau et détails minéraux crédibles.",
+  },
+  {
+    titre: "Nature au crépuscule",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Paysage naturel au crépuscule",
+    isAI: false,
+    correction: "Indice : progression de lumière réaliste.",
+  },
+  {
+    titre: "Influenceur aux 6 doigts",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-1-faux-influenceur.jpg",
+    mediaAlt: "Portrait avec anomalie de doigts",
     isAI: true,
-    correction:
-      "Excellent ! L'IA génère les objets indépendamment les uns des autres. Elle oublie très souvent de respecter les lois de la physique pour les reflets dans les miroirs ou les vitres.",
+    correction: "Indice : nombre de doigts incohérent, signal typique d'une image IA.",
+  },
+  {
+    titre: "Reflet impossible",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-5-reflet-impossible.jpg",
+    mediaAlt: "Reflet incohérent",
+    isAI: true,
+    correction: "Indice : logique du miroir non respectée.",
+  },
+  {
+    titre: "Pancarte illisible",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-3-manifestation.jpg",
+    mediaAlt: "Texte déformé",
+    isAI: true,
+    correction: "Indice : texte incohérent, fréquent dans les générations IA.",
+  },
+  {
+    titre: "Chien géant (perspective)",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-4-chien-geant.jpg",
+    mediaAlt: "Illusion de perspective",
+    isAI: false,
+    correction: "Indice : c'est une illusion d'optique réelle, pas de l'IA.",
+  },
+  {
+    titre: "Marcheur sur l'eau",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-2-marcheur-eau.jpg",
+    mediaAlt: "Désert miroir",
+    isAI: false,
+    correction: "Indice : phénomène naturel réel dans un désert salé après pluie.",
+  },
+  {
+    titre: "Main anormale en portrait",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-1-faux-influenceur.jpg",
+    mediaAlt: "Portrait suspect avec détails de main incohérents",
+    isAI: true,
+    correction: "Indice : la main et les doigts paraissent anatomiquement incohérents, fréquent en IA.",
+  },
+  {
+    titre: "Reflet vitrine incohérent",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-5-reflet-impossible.jpg",
+    mediaAlt: "Scène avec reflet suspect",
+    isAI: true,
+    correction: "Indice : les reflets ne respectent pas la position des objets.",
+  },
+  {
+    titre: "Texte de panneau déformé",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-3-manifestation.jpg",
+    mediaAlt: "Pancarte aux caractères déformés",
+    isAI: true,
+    correction: "Indice : lettres floues et formes impossibles, souvent liées à la génération IA.",
+  },
+  {
+    titre: "Visage trop lisse",
+    mediaType: "image",
+    mediaSrc: "/images/detective-ia/niveau-1-faux-influenceur.jpg",
+    mediaAlt: "Visage avec texture de peau artificielle",
+    isAI: true,
+    correction: "Indice : texture de peau trop uniforme et détails locaux peu naturels.",
   },
 ]
 
-// Le reste de ton code reste IDENTIQUE
+const VIDEO_POOL: Omit<Level, "id" | "difficulte">[] = [
+  {
+    titre: "Intervenant réel face caméra",
+    mediaType: "video",
+    mediaSrc: "https://cdn.pixabay.com/video/2021/10/20/92662-637274989_large.mp4",
+    mediaAlt: "Personne réelle qui parle",
+    isAI: false,
+    correction: "Indice : micro-expressions et rythme visuel sont naturels.",
+  },
+  {
+    titre: "Avatar IA studio",
+    mediaType: "video",
+    mediaSrc: "https://cdn.pixabay.com/video/2025/11/17/316552_large.mp4",
+    mediaAlt: "Avatar généré par IA",
+    isAI: true,
+    correction: "Indice : texture du visage très lisse et mouvement du regard trop stable.",
+  },
+  {
+    titre: "Montagne en vidéo",
+    mediaType: "video",
+    mediaSrc: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+    mediaAlt: "Vidéo réelle de montagne",
+    isAI: false,
+    correction: "Indice : mouvement de caméra naturel et cohérence lumineuse.",
+  },
+  {
+    titre: "Digital human synthétique",
+    mediaType: "video",
+    mediaSrc: "https://cdn.pixabay.com/video/2026/02/03/332462_large.mp4",
+    mediaAlt: "Humain virtuel",
+    isAI: true,
+    correction: "Indice : animation trop régulière et rendu artificiel.",
+  },
+  {
+    titre: "Prise de parole authentique",
+    mediaType: "video",
+    mediaSrc: "https://cdn.pixabay.com/video/2022/05/16/117119-710546552_large.mp4",
+    mediaAlt: "Intervenant réel",
+    isAI: false,
+    correction: "Indice : synchronisation lèvres/mouvement corporel naturelle.",
+  },
+]
+
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
+function resolveDifficulty(index: number): Level["difficulte"] {
+  if (index < 6) return "Facile"
+  if (index < 14) return "Moyenne"
+  return "Difficile"
+}
+
+function pickWithRepeat<T>(pool: T[], count: number): T[] {
+  if (pool.length === 0 || count <= 0) return []
+  const shuffled = shuffleArray(pool)
+  const result: T[] = []
+  for (let index = 0; index < count; index += 1) {
+    result.push(shuffled[index % shuffled.length])
+  }
+  return shuffleArray(result)
+}
+
+function buildAnswerPattern(total: number, targetIA: number): boolean[] {
+  const motifs: boolean[][] = [
+    [false, true, true, false],
+    [true, false, true, false],
+    [true, true, false, true],
+    [false, true, false, true],
+  ]
+
+  const pattern: boolean[] = []
+  while (pattern.length < total) {
+    const motif = motifs[Math.floor(Math.random() * motifs.length)]
+    pattern.push(...motif)
+  }
+  pattern.length = total
+
+  let currentIA = pattern.filter(Boolean).length
+  while (currentIA < targetIA) {
+    const falseIndexes = pattern
+      .map((value, index) => ({ value, index }))
+      .filter((entry) => !entry.value)
+      .map((entry) => entry.index)
+    if (falseIndexes.length === 0) break
+    const index = falseIndexes[Math.floor(Math.random() * falseIndexes.length)]
+    pattern[index] = true
+    currentIA += 1
+  }
+
+  while (currentIA > targetIA) {
+    const trueIndexes = pattern
+      .map((value, index) => ({ value, index }))
+      .filter((entry) => entry.value)
+      .map((entry) => entry.index)
+    if (trueIndexes.length === 0) break
+    const index = trueIndexes[Math.floor(Math.random() * trueIndexes.length)]
+    pattern[index] = false
+    currentIA -= 1
+  }
+
+  return pattern
+}
+
+function buildRandomRounds(total = TOTAL_ROUNDS): Level[] {
+  const imageAI = IMAGE_POOL.filter((item) => item.isAI)
+  const imageReal = IMAGE_POOL.filter((item) => !item.isAI)
+  const videoAI = VIDEO_POOL.filter((item) => item.isAI)
+  const videoReal = VIDEO_POOL.filter((item) => !item.isAI)
+
+  const selectedAIImages = pickWithRepeat(imageAI, 8)
+  const selectedRealImages = pickWithRepeat(imageReal, 7)
+  const selectedAIVideos = pickWithRepeat(videoAI, 4)
+  const selectedRealVideos = pickWithRepeat(videoReal, 1)
+
+  const aiQueue = shuffleArray([...selectedAIImages, ...selectedAIVideos])
+  const realQueue = shuffleArray([...selectedRealImages, ...selectedRealVideos])
+
+  const answerPattern = buildAnswerPattern(total, 12)
+  const rounds: Level[] = []
+  let aiIndex = 0
+  let realIndex = 0
+
+  for (let roundIndex = 0; roundIndex < total; roundIndex += 1) {
+    const wantsAI = answerPattern[roundIndex]
+    let source = wantsAI ? aiQueue[aiIndex] : realQueue[realIndex]
+
+    if (!source) {
+      source = wantsAI ? realQueue[realIndex] : aiQueue[aiIndex]
+      if (!source) break
+      if (wantsAI) {
+        realIndex += 1
+      } else {
+        aiIndex += 1
+      }
+    } else if (wantsAI) {
+      aiIndex += 1
+    } else {
+      realIndex += 1
+    }
+
+    rounds.push({
+      id: roundIndex + 1,
+      titre: source.titre,
+      difficulte: resolveDifficulty(roundIndex),
+      mediaType: source.mediaType,
+      mediaSrc: source.mediaSrc,
+      mediaAlt: source.mediaAlt,
+      isAI: source.isAI,
+      correction: source.correction,
+    })
+  }
+
+  return rounds
+}
+
 function difficultyStyle(level: Level["difficulte"]) {
   if (level === "Facile") return "bg-green-100 text-green-700"
   if (level === "Moyenne") return "bg-yellow-100 text-yellow-700"
   return "bg-red-100 text-red-700"
 }
 
+function mediaStyle(mediaType: Level["mediaType"]) {
+  return mediaType === "video"
+    ? "bg-cyan-100 text-cyan-700"
+    : "bg-fuchsia-100 text-fuchsia-700"
+}
+
+function getObservationHint(mediaType: Level["mediaType"]) {
+  if (mediaType === "video") {
+    return "Indice perspicace : observe la synchronisation lèvres/voix, le clignement et les micro-expressions."
+  }
+  return "Indice perspicace : vérifie les doigts, les reflets, les textes et les ombres."
+}
+
 export default function GamesPage() {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const [levels, setLevels] = useState<Level[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<boolean | null>(null)
   const [confirmed, setConfirmed] = useState(false)
@@ -89,6 +366,11 @@ export default function GamesPage() {
   const [finished, setFinished] = useState(false)
   const [timeLeft, setTimeLeft] = useState(GAME_TIME_SECONDS)
   const [timeoutRound, setTimeoutRound] = useState(false)
+  const [mediaError, setMediaError] = useState(false)
+
+  useEffect(() => {
+    setLevels(buildRandomRounds())
+  }, [])
 
   const current = levels[index]
 
@@ -104,13 +386,33 @@ export default function GamesPage() {
     return () => clearTimeout(timerId)
   }, [timeLeft, confirmed, finished])
 
+  useEffect(() => {
+    setMediaError(false)
+  }, [index])
+
+  function handleVideoLoadedMetadata() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.duration > CLIP_PREVIEW_SECONDS) {
+      video.currentTime = 0
+    }
+  }
+
+  function handleVideoTimeUpdate() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.currentTime >= CLIP_PREVIEW_SECONDS) {
+      video.pause()
+    }
+  }
+
   const progress = useMemo(() => {
     if (levels.length === 0) return 0
     return ((index + (confirmed ? 1 : 0)) / levels.length) * 100
-  }, [index, confirmed])
+  }, [index, confirmed, levels.length])
 
   function handleAnswer(choiceIsAI: boolean) {
-    if (confirmed) return
+    if (confirmed || !current) return
     setSelected(choiceIsAI)
     setConfirmed(true)
     if (choiceIsAI === current.isAI) {
@@ -121,16 +423,18 @@ export default function GamesPage() {
   function handleNext() {
     if (index + 1 >= levels.length) {
       setFinished(true)
-    } else {
-      setIndex((prev) => prev + 1)
-      setSelected(null)
-      setConfirmed(false)
-      setTimeLeft(GAME_TIME_SECONDS)
-      setTimeoutRound(false)
+      return
     }
+
+    setIndex((prev) => prev + 1)
+    setSelected(null)
+    setConfirmed(false)
+    setTimeLeft(GAME_TIME_SECONDS)
+    setTimeoutRound(false)
   }
 
   function handleRestart() {
+    setLevels(buildRandomRounds())
     setIndex(0)
     setSelected(null)
     setConfirmed(false)
@@ -140,7 +444,14 @@ export default function GamesPage() {
     setTimeoutRound(false)
   }
 
-  // ─── Écran résultats ───────────────────────────────────────────────────────
+  if (!current) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-4 text-white">
+        Chargement des niveaux...
+      </div>
+    )
+  }
+
   if (finished) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-4">
@@ -155,10 +466,10 @@ export default function GamesPage() {
             </p>
             <p className="text-slate-300">
               {score === levels.length
-                ? "Parfait ! Tu es un vrai détective IA 🕵️"
+                ? "Parfait !"
                 : score >= levels.length / 2
-                ? "Bien joué ! Encore un peu d'entraînement..."
-                : "Continue à t'entraîner, tu vas y arriver !"}
+                ? "Bon niveau, continue l'entraînement."
+                : "Continue à t'entraîner, tu vas progresser."}
             </p>
             <Button onClick={handleRestart} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
               <RotateCcw size={16} className="mr-2" />
@@ -170,13 +481,11 @@ export default function GamesPage() {
     )
   }
 
-  // ─── Écran jeu ────────────────────────────────────────────────────────────
   const isCorrect = selected !== null && selected === current.isAI
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-4">
       <div className="max-w-2xl mx-auto space-y-4">
-        {/* En-tête */}
         <div className="flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <Brain size={28} className="text-purple-400" />
@@ -190,44 +499,68 @@ export default function GamesPage() {
           </div>
         </div>
 
-        {/* Barre de progression */}
         <div className="w-full bg-slate-700 rounded-full h-2">
-          <div
-            className="bg-purple-500 h-2 rounded-full transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
 
-        {/* Carte niveau */}
         <Card className="border-purple-500/30 bg-slate-800/80 backdrop-blur text-white shadow-xl">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl">{current.titre}</CardTitle>
-              <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", difficultyStyle(current.difficulte))}>
-                {current.difficulte}
-              </span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-xl">{current.titre}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", mediaStyle(current.mediaType))}>
+                    {current.mediaType === "video" ? "VIDÉO" : "IMAGE"}
+                  </span>
+                  <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", difficultyStyle(current.difficulte))}>
+                    {current.difficulte}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-purple-100/90 bg-purple-900/40 border border-purple-400/30 rounded-lg px-3 py-2">
+                {getObservationHint(current.mediaType)}
+              </p>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Timer */}
             <div className="flex items-center gap-2 text-sm">
               <Clock3 size={16} className={timeLeft <= 5 ? "text-red-400 animate-pulse" : "text-slate-400"} />
-              <span className={timeLeft <= 5 ? "text-red-400 font-bold" : "text-slate-300"}>
-                {timeLeft}s
-              </span>
+              <span className={timeLeft <= 5 ? "text-red-400 font-bold" : "text-slate-300"}>{timeLeft}s</span>
             </div>
 
-            {/* Image */}
             <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-slate-700">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={current.imageSrc}
-                alt={current.imageAlt}
-                className="w-full h-full object-cover"
-              />
+              {mediaError ? (
+                <div className="w-full h-full flex items-center justify-center text-center p-6 text-slate-300">
+                  Le média ne se charge pas sur ton réseau.
+                </div>
+              ) : current.mediaType === "video" ? (
+                <>
+                  <video
+                    ref={videoRef}
+                    src={current.mediaSrc}
+                    className="w-full h-full object-cover"
+                    controls
+                    playsInline
+                    preload="metadata"
+                    onLoadedMetadata={handleVideoLoadedMetadata}
+                    onTimeUpdate={handleVideoTimeUpdate}
+                    onError={() => setMediaError(true)}
+                  />
+                  <div className="absolute top-2 right-2 rounded-full bg-black/65 text-white text-[11px] px-3 py-1 font-semibold">
+                    Aperçu {CLIP_PREVIEW_SECONDS}s
+                  </div>
+                </>
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.mediaSrc}
+                  alt={current.mediaAlt}
+                  className="w-full h-full object-cover"
+                  onError={() => setMediaError(true)}
+                />
+              )}
             </div>
 
-            {/* Boutons réponse */}
             {!confirmed && (
               <div className="grid grid-cols-2 gap-3">
                 <Button
@@ -235,18 +568,14 @@ export default function GamesPage() {
                   variant="outline"
                   className="border-green-500 text-green-400 hover:bg-green-500/10"
                 >
-                  📷 VRAIE PHOTO
+                  ✅ VRAI CONTENU
                 </Button>
-                <Button
-                  onClick={() => handleAnswer(true)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white"
-                >
-                  🤖 CRÉÉE PAR IA
+                <Button onClick={() => handleAnswer(true)} className="bg-purple-600 hover:bg-purple-700 text-white">
+                  🤖 FAUX IA
                 </Button>
               </div>
             )}
 
-            {/* Correction */}
             {confirmed && (
               <div
                 className={cn(
@@ -262,21 +591,18 @@ export default function GamesPage() {
                   <p className="font-semibold text-slate-300">⏱ Temps écoulé !</p>
                 ) : isCorrect ? (
                   <div className="flex items-center gap-2 text-green-400 font-semibold">
-                    <CheckCircle2 size={18} /> Bonne réponse !
+                    <CheckCircle2 size={18} /> Bonne réponse.
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 text-red-400 font-semibold">
-                    <XCircle size={18} /> Mauvaise réponse
+                    <XCircle size={18} /> Mauvaise réponse, ce n'est pas correct.
                   </div>
                 )}
                 <p className="text-sm text-slate-300">{current.correction}</p>
                 <p className="text-xs text-slate-400 italic">
-                  Réponse : {current.isAI ? "Créée par IA 🤖" : "Vraie photo 📷"}
+                  Réponse : {current.isAI ? "Faux contenu IA 🤖" : "Vrai contenu ✅"}
                 </p>
-                <Button
-                  onClick={handleNext}
-                  className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white"
-                >
+                <Button onClick={handleNext} className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white">
                   {index + 1 >= levels.length ? "Voir les résultats" : "Niveau suivant →"}
                 </Button>
               </div>

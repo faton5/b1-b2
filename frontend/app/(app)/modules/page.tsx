@@ -3,13 +3,24 @@
 import { useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import Link from "next/link"
+import { Card, CardContent } from "@/components/ui/card"
 import { awardXp } from "@/lib/progression.actions"
 import { useXp } from "@/lib/xp-context"
 
-const modules = [
+type ModuleStatus = "done" | "available" | "locked"
+
+type ModuleItem = {
+  id: number
+  title: string
+  description: string
+  xp: number
+  duration: string
+  level: number
+  status: ModuleStatus
+  tags: string[]
+}
+
+const modules: ModuleItem[] = [
   {
     id: 1,
     title: "Qu'est-ce que l'IA générative ?",
@@ -72,7 +83,7 @@ export default function ModulesPage() {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const { addXp } = useXp()
-  const [moduleStates, setModuleStates] = useState(() =>
+  const [moduleStates, setModuleStates] = useState<ModuleItem[]>(() =>
     modules.map((mod) => ({ ...mod }))
   )
   const [awardedIds, setAwardedIds] = useState(() => new Set<number>())
