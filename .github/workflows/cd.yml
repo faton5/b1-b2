@@ -117,7 +117,7 @@ jobs:
       - name: Upload deployment archive
         shell: bash
         run: |
-          set -eu
+          set -euxo pipefail
           SSH_OPTS=(
             -i "$HOME/.ssh/deploy_key"
             -o StrictHostKeyChecking=accept-new
@@ -125,13 +125,18 @@ jobs:
             -o ConnectTimeout=15
             -o ServerAliveInterval=15
             -o ServerAliveCountMax=3
+            -p "${{ secrets.HOST_PORT }}"
           )
-          scp \
-            -v \
+          ARCHIVE_SIZE="$(wc -c < "$RUNNER_TEMP/deploy.tar.gz")"
+          ssh \
+            -vv \
             "${SSH_OPTS[@]}" \
-            -P "${{ secrets.HOST_PORT }}" \
-            "$RUNNER_TEMP/deploy.tar.gz" \
-            "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}:${{ env.DEPLOY_PATH }}/deploy.tar.gz"
+            "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}" \
+            "cat > '${{ env.DEPLOY_PATH }}/deploy.tar.gz'" < "$RUNNER_TEMP/deploy.tar.gz"
+          ssh \
+            "${SSH_OPTS[@]}" \
+            "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}" \
+            "test \"\$(wc -c < '${{ env.DEPLOY_PATH }}/deploy.tar.gz')\" = '$ARCHIVE_SIZE'"
 
       - name: Deploy on VPS
         shell: bash
