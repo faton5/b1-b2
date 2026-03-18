@@ -16,3 +16,5 @@ node_modules/
 .next/
 .DS_Storequiz-app/
 quiz-app-1/
+../quiz-app/
+../quiz-app-1/
