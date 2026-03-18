@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 const publicNavItems: Array<{ label: string; href: string; icon: IconName }> = [
   { label: "Modules", href: "/modules", icon: "book" },
   { label: "Chat IA", href: "/chat", icon: "chat" },
+  { label: "Galerie", href: "/gallery", icon: "gallery" },
   { label: "Quiz", href: "/quiz", icon: "quiz" },
   { label: "Mini-jeux", href: "/games", icon: "game" },
   { label: "Badges", href: "/badges", icon: "trophy" },
