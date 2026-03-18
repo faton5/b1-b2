@@ -74,17 +74,43 @@ jobs:
         run: |
           set -eu
           mkdir -p "$HOME/.ssh"
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > "$HOME/.ssh/deploy_key"
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" | tr -d '\r' > "$HOME/.ssh/deploy_key"
           chmod 600 "$HOME/.ssh/deploy_key"
+
+      - name: Validate SSH connectivity
+        shell: bash
+        run: |
+          set -eu
+          SSH_OPTS=(
+            -i "$HOME/.ssh/deploy_key"
+            -o StrictHostKeyChecking=accept-new
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -p "${{ secrets.HOST_PORT }}"
+          )
+          ssh \
+            -vv \
+            "${SSH_OPTS[@]}" \
+            "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}" \
+            "echo SSH connection established on \$(hostname); id; uname -a"
 
       - name: Ensure deploy directory exists on VPS
         shell: bash
         run: |
           set -eu
+          SSH_OPTS=(
+            -i "$HOME/.ssh/deploy_key"
+            -o StrictHostKeyChecking=accept-new
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -p "${{ secrets.HOST_PORT }}"
+          )
           ssh \
-            -i "$HOME/.ssh/deploy_key" \
-            -o StrictHostKeyChecking=accept-new \
-            -p "${{ secrets.HOST_PORT }}" \
+            "${SSH_OPTS[@]}" \
             "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}" \
             "mkdir -p '${{ env.DEPLOY_PATH }}'"
 
@@ -92,9 +118,17 @@ jobs:
         shell: bash
         run: |
           set -eu
+          SSH_OPTS=(
+            -i "$HOME/.ssh/deploy_key"
+            -o StrictHostKeyChecking=accept-new
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+          )
           scp \
-            -i "$HOME/.ssh/deploy_key" \
-            -o StrictHostKeyChecking=accept-new \
+            -v \
+            "${SSH_OPTS[@]}" \
             -P "${{ secrets.HOST_PORT }}" \
             "$RUNNER_TEMP/deploy.tar.gz" \
             "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}:${{ env.DEPLOY_PATH }}/deploy.tar.gz"
@@ -103,10 +137,17 @@ jobs:
         shell: bash
         run: |
           set -eu
+          SSH_OPTS=(
+            -i "$HOME/.ssh/deploy_key"
+            -o StrictHostKeyChecking=accept-new
+            -o BatchMode=yes
+            -o ConnectTimeout=15
+            -o ServerAliveInterval=15
+            -o ServerAliveCountMax=3
+            -p "${{ secrets.HOST_PORT }}"
+          )
           ssh \
-            -i "$HOME/.ssh/deploy_key" \
-            -o StrictHostKeyChecking=accept-new \
-            -p "${{ secrets.HOST_PORT }}" \
+            "${SSH_OPTS[@]}" \
             "${{ secrets.HOST_USER }}@${{ secrets.HOST_IP }}" \
             'bash -se' <<'EOF'
           set -eu
