@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { modules } from "@/lib/modules-data"
 
 const statusConfig = {
-  done: { label: "Terminé", color: "bg-primary/10 text-primary", icon: CheckCircle2 },
+  done: { label: "TerminÃ©", color: "bg-primary/10 text-primary", icon: CheckCircle2 },
   available: { label: "Disponible", color: "bg-secondary/20 text-secondary-foreground", icon: BookOpen },
-  locked: { label: "Verrouillé", color: "bg-muted text-muted-foreground", icon: Lock },
+  locked: { label: "VerrouillÃ©", color: "bg-muted text-muted-foreground", icon: Lock },
 }
 
 export default function ModulesPage() {
@@ -31,36 +31,34 @@ export default function ModulesPage() {
   }
 
   const totalSources = selected ? selected.resources.length : 0
-  const totalSteps = selected ? 1 + totalSources : 0 // lire + toutes les sources
+  const totalSteps = selected ? 1 + totalSources : 0
   const doneSources = selected ? openedSources.filter((h) => selected.resources.some((r) => r.href === h)).length : 0
   const stepsDone = selected ? (courseRead ? 1 : 0) + doneSources : 0
   const completed = selected ? stepsDone >= totalSteps && totalSteps > 0 : false
 
-  // Quand un module est complété, on l'ajoute à la liste (une seule fois) et on déclenche l'animation
   useEffect(() => {
     if (!selected || !completed) return
 
     setCompletedModuleIds((prev) => (prev.includes(selected.id) ? prev : [...prev, selected.id]))
     setCelebrate(true)
-    const t = setTimeout(() => setCelebrate(false), 2000)
-    return () => clearTimeout(t)
+    const timerId = setTimeout(() => setCelebrate(false), 2000)
+    return () => clearTimeout(timerId)
   }, [selected, completed])
 
   const completedCount = completedModuleIds.length
   const completedRatio = modules.length > 0 ? completedCount / modules.length : 0
   const totalXp = completedModuleIds.reduce((sum, id) => {
-    const m = modules.find((mod) => mod.id === id)
-    return sum + (m?.xp ?? 0)
+    const moduleItem = modules.find((moduleDef) => moduleDef.id === id)
+    return sum + (moduleItem?.xp ?? 0)
   }, 0)
 
   if (!selected) {
-    // vue liste uniquement
     return (
       <div className="p-8 max-w-4xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground text-balance">Modules pédagogiques</h1>
+          <h1 className="text-2xl font-bold text-foreground text-balance">Modules pÃ©dagogiques</h1>
           <p className="text-muted-foreground mt-1">
-            Découvre comment utiliser l&apos;IA de façon éclairée, responsable et utile, sans perdre ton esprit critique ni ta capacité à réfléchir.
+            DÃ©couvre comment utiliser l&apos;IA de faÃ§on Ã©clairÃ©e, responsable et utile, sans perdre ton esprit critique ni ta capacitÃ© Ã  rÃ©flÃ©chir.
           </p>
         </div>
 
@@ -69,7 +67,7 @@ export default function ModulesPage() {
             <p className="text-2xl font-bold text-primary">
               {completedCount} / {modules.length}
             </p>
-            <p className="text-xs text-muted-foreground">modules terminés</p>
+            <p className="text-xs text-muted-foreground">modules terminÃ©s</p>
           </div>
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div
@@ -79,23 +77,23 @@ export default function ModulesPage() {
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">{totalXp} XP</p>
-            <p className="text-xs text-muted-foreground">gagnés</p>
+            <p className="text-xs text-muted-foreground">gagnÃ©s</p>
           </div>
         </div>
 
         <div className="space-y-3">
-          {modules.map((mod) => {
-            const cfg = statusConfig[mod.status as keyof typeof statusConfig]
+          {modules.map((moduleItem) => {
+            const cfg = statusConfig[moduleItem.status as keyof typeof statusConfig]
             const StatusIcon = cfg.icon
-            const isLocked = mod.status === "locked"
-            const isCompleted = completedModuleIds.includes(mod.id)
+            const isLocked = moduleItem.status === "locked"
+            const isCompleted = completedModuleIds.includes(moduleItem.id)
 
             return (
               <button
-                key={mod.id}
+                key={moduleItem.id}
                 type="button"
                 onClick={() => {
-                  setSelectedId(mod.id)
+                  setSelectedId(moduleItem.id)
                   setOpenedSources([])
                   setCourseRead(false)
                   setCelebrate(false)
@@ -114,19 +112,19 @@ export default function ModulesPage() {
                     <div className="flex-1 min-w-0 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="space-y-1">
-                          <h3 className="font-semibold text-foreground leading-snug">{mod.title}</h3>
+                          <h3 className="font-semibold text-foreground leading-snug">{moduleItem.title}</h3>
                           {isCompleted && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
                               <CheckCircle2 className="w-3 h-3" />
-                              Terminé
+                              TerminÃ©
                             </span>
                           )}
                         </div>
                         {!isLocked && <ChevronRight className="size-4 text-muted-foreground flex-shrink-0 mt-0.5" />}
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{mod.description}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{moduleItem.description}</p>
                       <div className="flex flex-wrap items-center gap-2 pt-1">
-                        {mod.tags.map((tag) => (
+                        {moduleItem.tags.map((tag) => (
                           <span
                             key={tag}
                             className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-medium"
@@ -134,10 +132,10 @@ export default function ModulesPage() {
                             {tag}
                           </span>
                         ))}
-                        <span className="text-xs text-muted-foreground">{mod.duration}</span>
+                        <span className="text-xs text-muted-foreground">{moduleItem.duration}</span>
                         <span className="text-xs flex items-center gap-0.5 text-primary font-medium">
                           <Zap className="size-3" />
-                          {mod.xp} XP
+                          {moduleItem.xp} XP
                         </span>
                       </div>
                     </div>
@@ -151,7 +149,6 @@ export default function ModulesPage() {
     )
   }
 
-  // vue cours plein écran
   const pct = totalSteps > 0 ? Math.round((stepsDone / totalSteps) * 100) : 0
 
   return (
@@ -168,11 +165,11 @@ export default function ModulesPage() {
           <div className="flex-1">
             <h1 className="text-lg font-bold text-gray-900">{selected.title}</h1>
             <p className="text-xs text-gray-600">
-              Module {selected.id} sur {modules.length} • {selected.duration}
+              Module {selected.id} sur {modules.length} â€¢ {selected.duration}
             </p>
           </div>
           <Badge className={completed ? "bg-green-100 text-green-700 border-green-300" : "bg-blue-100 text-blue-700"}>
-            {completed ? "Module complété" : `${selected.xp} XP`}
+            {completed ? "Module complÃ©tÃ©" : `${selected.xp} XP`}
           </Badge>
         </div>
         <div className="mx-auto max-w-4xl px-6 pb-3">
@@ -186,25 +183,25 @@ export default function ModulesPage() {
       </header>
 
       <main className="mx-auto max-w-4xl px-6 py-8 space-y-6">
-        {/* sources en haut */}
         {selected.resources.length > 0 && (
           <Card className="p-5 bg-gradient-to-br from-purple-50 to-cyan-50 border-purple-100">
             <p className="text-sm font-semibold text-foreground mb-2">
-              Étape 1 : ouvrir toutes les sources du module
+              Ã‰tape 1 : ouvrir toutes les sources du module
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm">
-              {selected.resources.map((res) => {
-                const opened = openedSources.includes(res.href)
+              {selected.resources.map((resource) => {
+                const opened = openedSources.includes(resource.href)
                 return (
-                  <li key={res.href}>
+                  <li key={resource.href}>
                     <button
                       type="button"
-                      onClick={() => handleOpenSource(res.href)}
+                      onClick={() => handleOpenSource(resource.href)}
                       className={`underline underline-offset-2 ${
                         opened ? "text-green-700" : "text-primary"
                       }`}
                     >
-                      {opened ? "✓ " : ""}{res.label}
+                      {opened ? "âœ“ " : ""}
+                      {resource.label}
                     </button>
                   </li>
                 )
@@ -213,7 +210,6 @@ export default function ModulesPage() {
           </Card>
         )}
 
-        {/* image + intro */}
         <Card className="p-6 bg-white border-blue-100 shadow-sm">
           <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="w-full md:w-1/3 rounded-2xl overflow-hidden border bg-muted/40 shadow-inner">
@@ -237,7 +233,7 @@ export default function ModulesPage() {
             <div className="flex-1 space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
                 <BookOpen className="w-3 h-3" />
-                Module {selected.id} • Niveau {selected.level}
+                Module {selected.id} â€¢ Niveau {selected.level}
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-foreground">{selected.title}</h2>
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{selected.description}</p>
@@ -245,7 +241,6 @@ export default function ModulesPage() {
           </div>
         </Card>
 
-        {/* sections du cours */}
         <div className="space-y-4">
           {selected.sections.map((section, index) => (
             <Card
@@ -269,7 +264,6 @@ export default function ModulesPage() {
           ))}
         </div>
 
-        {/* bouton de fin en bas de page */}
         <div className="flex justify-end pt-2">
           <button
             type="button"
@@ -278,13 +272,13 @@ export default function ModulesPage() {
               courseRead ? "border-green-500 text-green-700 bg-green-50" : "border-primary text-primary bg-primary/5"
             }`}
           >
-            {courseRead ? "Cours marqué comme lu" : "J'ai lu tout le cours"}
+            {courseRead ? "Cours marquÃ© comme lu" : "J'ai lu tout le cours"}
           </button>
         </div>
 
         {celebrate && (
           <p className="text-center text-lg font-bold text-green-600 animate-bounce">
-            🎉 Bravo, tu as complété ce module !
+            ðŸŽ‰ Bravo, tu as complÃ©tÃ© ce module !
           </p>
         )}
       </main>
