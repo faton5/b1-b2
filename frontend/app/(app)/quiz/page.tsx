@@ -1,10 +1,11 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useTransition } from "react"
 import { BookOpenCheck, CheckCircle2, ChevronRight, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { recordQuizAnswer } from "@/lib/guest.actions"
 
 type Question = {
   id: number
@@ -115,6 +116,7 @@ export default function QuizPage() {
   const [confirmed, setConfirmed] = useState(false)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [, startTransition] = useTransition()
 
   const current = questions[index]
   const isCorrect = selected === current.answer
@@ -126,8 +128,22 @@ export default function QuizPage() {
 
   function handleValidate() {
     if (selected === null || confirmed) return
+    const selectedAnswer = current.options[selected]
+    const correctAnswer = current.options[current.answer]
+    const isCorrectAnswer = selected === current.answer
     setConfirmed(true)
-    if (isCorrect) setScore((s) => s + 1)
+    if (isCorrectAnswer) setScore((s) => s + 1)
+
+    startTransition(() => {
+      recordQuizAnswer({
+        quizId: "le-decodeur-ia",
+        questionIndex: index + 1,
+        questionText: current.question,
+        selectedAnswer,
+        correctAnswer,
+        isCorrect: isCorrectAnswer,
+      })
+    })
   }
 
   function handleNext() {
