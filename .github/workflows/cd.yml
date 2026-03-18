@@ -17,6 +17,7 @@ permissions:
 
 env:
   DEPLOY_PATH: /opt/github/b1-b2
+  RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
 
 jobs:
   verify:
@@ -32,7 +33,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Validate Docker Compose file
         run: docker compose config
@@ -54,7 +55,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ env.RELEASE_SHA }}
 
       - name: Create deployment archive
         run: |
@@ -158,6 +159,7 @@ jobs:
           set -eu
           APP_DIR="${{ env.DEPLOY_PATH }}"
           ARCHIVE_PATH="$APP_DIR/deploy.tar.gz"
+          RELEASE_SHA="${{ env.RELEASE_SHA }}"
 
           mkdir -p "$APP_DIR"
           test -f "$ARCHIVE_PATH"
@@ -183,8 +185,14 @@ jobs:
           OPENROUTER_MAX_TOKENS=${{ secrets.OPENROUTER_MAX_TOKENS }}
           ENVEOF
 
+          cat > "$APP_DIR/.release-version" <<ENVEOF
+          RELEASE_SHA=$RELEASE_SHA
+          DEPLOYED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          ENVEOF
+
           cd "$APP_DIR"
-          "${DOCKER_CMD[@]}" compose up -d --build --remove-orphans
+          "${DOCKER_CMD[@]}" compose down --remove-orphans || true
+          "${DOCKER_CMD[@]}" compose up -d --build --force-recreate --remove-orphans
 
           BACKEND_CONTAINER="$("${DOCKER_CMD[@]}" compose ps -q backend)"
           FRONTEND_CONTAINER="$("${DOCKER_CMD[@]}" compose ps -q frontend)"
@@ -194,5 +202,6 @@ jobs:
           test "$("${DOCKER_CMD[@]}" inspect -f '{{.State.Running}}' "$BACKEND_CONTAINER")" = "true"
           test "$("${DOCKER_CMD[@]}" inspect -f '{{.State.Running}}' "$FRONTEND_CONTAINER")" = "true"
 
+          cat "$APP_DIR/.release-version"
           "${DOCKER_CMD[@]}" compose ps
           EOF
