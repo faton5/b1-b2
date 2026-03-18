@@ -2,21 +2,15 @@ import Link from "next/link"
 import { getSession } from "@/lib/session"
 import { signOut } from "@/lib/auth.actions"
 import { isTeacherEmail } from "@/lib/roles"
-import { SidebarNavLink } from "@/components/sidebar-nav-link"
+import { SidebarNavLink, type IconName } from "@/components/sidebar-nav-link"
 import { SidebarXp } from "@/components/sidebar-xp"
-import {
-  LayoutDashboard,
-  BookOpen,
-  HelpCircle,
-  Gamepad2,
-  Trophy,
-  LogOut,
-  ShieldCheck,
-} from "lucide-react"
+import { LogOut, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const publicNavItems = [
+const publicNavItems: Array<{ label: string; href: string; icon: IconName }> = [
   { label: "Modules", href: "/modules", icon: "book" },
+  { label: "Chat IA", href: "/chat", icon: "chat" },
+  { label: "Galerie", href: "/gallery", icon: "gallery" },
   { label: "Quiz", href: "/quiz", icon: "quiz" },
   { label: "Mini-jeux", href: "/games", icon: "game" },
   { label: "Badges", href: "/badges", icon: "trophy" },
@@ -25,7 +19,7 @@ const publicNavItems = [
 export async function AppSidebar() {
   const user = await getSession()
   const isTeacher = isTeacherEmail(user?.email)
-  const navItems = isTeacher
+  const navItems: Array<{ label: string; href: string; icon: IconName }> = isTeacher
     ? [{ label: "Tableau de bord", href: "/dashboard", icon: "dashboard" }, ...publicNavItems]
     : publicNavItems
 
