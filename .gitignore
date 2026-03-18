@@ -1,0 +1,44 @@
+# Environnement & secrets
+.env
+.env.*
+*.env.local
+
+# Python / backend
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Logs
+logs/
+*.log
+
+# Build / artefacts
+dist/
+build/
+.next/
+coverage/
+
+# Docker
+*.local.yml
+
+# OS / éditeur
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cursor/
+
