@@ -1,140 +1,46 @@
 "use client"
 
-import { useMemo, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { BookOpenCheck, CheckCircle2, ChevronRight, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { recordQuizAnswer } from "@/lib/guest.actions"
+import { pickRandomQuestions, type OptionKey, type QuizQuestion } from "./question-bank"
 
-type Question = {
-  id: number
-  question: string
-  options: string[]
-  answer: number
-}
-
-const questions: Question[] = [
-  {
-    id: 1,
-    question: "Comment appelle-t-on une vidéo truquée par l'IA où l'on a remplacé le visage ou la voix de quelqu'un ?",
-    options: ["A) Un Fastfake", "B) Un Deepfake", "C) Un Facehack"],
-    answer: 1,
-  },
-  {
-    id: 2,
-    question: "C'est quoi une “Hallucination” quand on parle d'Intelligence Artificielle ?",
-    options: [
-      "A) Quand l'IA invente un mensonge très crédible car elle ne connaît pas la réponse.",
-      "B) Quand l'écran de ton ordinateur clignote de toutes les couleurs.",
-      "C) Quand l'IA dessine des choses invisibles à l'œil nu.",
-    ],
-    answer: 0,
-  },
-  {
-    id: 3,
-    question:
-      "Quel mot anglais utilise-t-on pour désigner la phrase de commande que l'on tape pour demander à l'IA de faire quelque chose ?",
-    options: ["A) Un Cheat-code", "B) Un Prompt", "C) Un Script"],
-    answer: 1,
-  },
-  {
-    id: 4,
-    question: "Qu'est-ce qu'une “Fake News” (ou Infox) ?",
-    options: [
-      "A) Une information vraie mais qui est très ancienne.",
-      "B) Une blague faite par un humoriste à la télévision.",
-      "C) Une fausse information créée volontairement pour manipuler ou faire le buzz.",
-    ],
-    answer: 2,
-  },
-  {
-    id: 5,
-    question:
-      "Quel est l'outil le plus efficace pour vérifier d'où vient une image suspecte vue sur les réseaux sociaux ?",
-    options: [
-      "A) La recherche inversée d'image (comme Google Lens ou TinEye)",
-      "B) Le dictionnaire français.",
-      "C) L'antivirus de ton téléphone.",
-    ],
-    answer: 0,
-  },
-  {
-    id: 6,
-    question:
-      "Si un long article sur Internet ne contient aucune faute d'orthographe, est-ce une preuve qu'il dit la vérité ?",
-    options: [
-      "A) Oui, les menteurs font toujours des fautes.",
-      "B) Non, les IA génératives (comme ChatGPT) écrivent sans faute et peuvent créer de fausses infos.",
-      "C) Oui, car les sites avec des fautes sont automatiquement bloqués.",
-    ],
-    answer: 1,
-  },
-  {
-    id: 7,
-    question:
-      "Quel détail physique est encore très difficile à générer correctement pour les IA qui créent des images ?",
-    options: ["A) La couleur des cheveux.", "B) Les nuages dans le ciel.", "C) Les mains et le nombre de doigts."],
-    answer: 2,
-  },
-  {
-    id: 8,
-    question: "Que veut dire l'abréviation “LLM” qui fait fonctionner des IA comme ChatGPT ?",
-    options: [
-      "A) Logiciel Libre et Mobile",
-      "B) Large Language Model (Grand Modèle de Langage)",
-      "C) Lecture Linéaire de Mots",
-    ],
-    answer: 1,
-  },
-  {
-    id: 9,
-    question:
-      "Une image très choquante te met très en colère sur ton fil d'actualité. Quel est le meilleur réflexe ?",
-    options: [
-      "A) La partager immédiatement pour prévenir tes amis.",
-      "B) Laisser un commentaire agressif.",
-      "C) Faire une pause et vérifier l'info sur un site d'actualité fiable.",
-    ],
-    answer: 2,
-  },
-  {
-    id: 10,
-    question: "C'est quoi le “Fact-checking” ?",
-    options: [
-      "A) Le travail de vérification des faits et de croisement des sources.",
-      "B) Le fait d'accepter toutes les conditions d'utilisation d'un site web.",
-      "C) Le fait de bloquer quelqu'un sur les réseaux sociaux.",
-    ],
-    answer: 0,
-  },
-]
+const TOTAL_QUESTIONS = 50
 
 export default function QuizPage() {
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [index, setIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
+  const [selected, setSelected] = useState<OptionKey | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
   const [, startTransition] = useTransition()
 
-  const current = questions[index]
-  const selectedOption = selected ? current?.options.find((opt) => opt.key === selected) : null
-  const isAnswerCorrect = Boolean(confirmed && selected && current && selected === current.answer)
+  useEffect(() => {
+    setQuestions(pickRandomQuestions(TOTAL_QUESTIONS))
+  }, [])
 
-  const handleConfirm = () => {
-    if (!selected || confirmed || !current) return
-    setConfirmed(true)
-    if (selected === current.answer) setScore((prev) => prev + 1)
-  }
+  const current = questions[index]
+  const progress = useMemo(() => {
+    if (questions.length === 0) return 0
+    return ((index + (confirmed ? 1 : 0)) / questions.length) * 100
+  }, [index, confirmed, questions.length])
+  const isCorrect = selected !== null && current ? selected === current.answer : false
 
   function handleValidate() {
-    if (selected === null || confirmed) return
-    const selectedAnswer = current.options[selected]
-    const correctAnswer = current.options[current.answer]
+    if (!current || selected === null || confirmed) return
+
+    const selectedAnswer = current.options.find((opt) => opt.key === selected)?.text ?? ""
+    const correctAnswer = current.options.find((opt) => opt.key === current.answer)?.text ?? ""
     const isCorrectAnswer = selected === current.answer
+
     setConfirmed(true)
-    if (isCorrectAnswer) setScore((s) => s + 1)
+    if (isCorrectAnswer) {
+      setScore((prev) => prev + 1)
+    }
 
     startTransition(() => {
       recordQuizAnswer({
@@ -160,11 +66,20 @@ export default function QuizPage() {
   }
 
   function handleRestart() {
+    setQuestions(pickRandomQuestions(TOTAL_QUESTIONS))
     setIndex(0)
     setSelected(null)
     setConfirmed(false)
     setScore(0)
     setFinished(false)
+  }
+
+  if (!current) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto min-h-[70vh] flex items-center justify-center text-muted-foreground">
+        Chargement du quiz...
+      </div>
+    )
   }
 
   if (finished) {
@@ -221,34 +136,36 @@ export default function QuizPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           {current.options.map((option, optionIndex) => {
+            const optionKey = option.key
             let style = "border-border bg-card text-foreground hover:bg-muted"
+
             if (confirmed) {
-              if (optionIndex === current.answer) {
+              if (optionKey === current.answer) {
                 style = "border-primary bg-primary/10 text-primary"
-              } else if (optionIndex === selected) {
+              } else if (optionKey === selected) {
                 style = "border-destructive bg-destructive/10 text-destructive"
               } else {
                 style = "border-border bg-card text-muted-foreground opacity-60"
               }
-            } else if (selected === optionIndex) {
+            } else if (selected === optionKey) {
               style = "border-primary bg-primary/10 text-primary"
             }
 
             return (
               <button
-                key={option}
-                onClick={() => !confirmed && setSelected(optionIndex)}
+                key={optionKey}
+                onClick={() => !confirmed && setSelected(optionKey)}
                 className={cn("w-full text-left px-4 py-3 rounded-lg border text-sm font-medium transition-colors", style)}
               >
                 <div className="flex items-center gap-3">
                   <span className="size-6 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {String.fromCharCode(65 + optionIndex)}
+                    {option.key}
                   </span>
-                  <span className="leading-relaxed">{option.replace(/^[A-C]\)\s/, "")}</span>
-                  {confirmed && optionIndex === current.answer && (
+                  <span className="leading-relaxed">{option.text}</span>
+                  {confirmed && option.key === current.answer && (
                     <CheckCircle2 className="size-4 ml-auto flex-shrink-0 text-primary" />
                   )}
-                  {confirmed && optionIndex === selected && optionIndex !== current.answer && (
+                  {confirmed && option.key === selected && option.key !== current.answer && (
                     <XCircle className="size-4 ml-auto flex-shrink-0 text-destructive" />
                   )}
                 </div>
@@ -268,7 +185,7 @@ export default function QuizPage() {
           <p className={cn("font-semibold", isCorrect ? "text-primary" : "text-destructive")}>
             {isCorrect ? "Bonne réponse !" : "Mauvaise réponse."}
           </p>
-          <p className="text-foreground/80 mt-1">Réponse attendue : {String.fromCharCode(65 + current.answer)}</p>
+          <p className="text-foreground/80 mt-1">Réponse attendue : {current.answer}</p>
         </div>
       )}
 
@@ -291,4 +208,3 @@ export default function QuizPage() {
     </div>
   )
 }
-
