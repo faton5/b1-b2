@@ -5,11 +5,6 @@ import { isTeacherEmail } from "@/lib/roles"
 import { SidebarNavLink } from "@/components/sidebar-nav-link"
 import { SidebarXp } from "@/components/sidebar-xp"
 import {
-  LayoutDashboard,
-  BookOpen,
-  HelpCircle,
-  Gamepad2,
-  Trophy,
   LogOut,
   ShieldCheck,
 } from "lucide-react"
@@ -17,6 +12,7 @@ import { Button } from "@/components/ui/button"
 
 const publicNavItems = [
   { label: "Modules", href: "/modules", icon: "book" },
+  { label: "Galerie", href: "/gallery", icon: "gallery" },
   { label: "Quiz", href: "/quiz", icon: "quiz" },
   { label: "Mini-jeux", href: "/games", icon: "game" },
   { label: "Badges", href: "/badges", icon: "trophy" },
