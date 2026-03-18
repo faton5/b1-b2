@@ -1,0 +1,177 @@
+﻿Ôû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+
+node.exe : ÔÜá The 
+"middleware" file 
+convention is 
+deprecated. Please 
+use "proxy" instead. 
+Learn more: https://n
+extjs.org/docs/messag
+es/middleware-to-prox
+y
+Au caractère Ligne:1 
+: 1
++ & "C:\Program Files
+\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : 
+NotSpeci    fied: 
+(ÔÜá The "m    
+iddle...leware-to    
+-proxy:String) []    
+, RemoteException
+    + 
+FullyQualifiedE    
+rrorId : NativeCo    
+mmandError
+ 
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 7.0s
+  Skipping validation of types
+  Collecting page data using 11 workers ...
+Error: Failed to 
+load external module 
+@prisma/client-7ed3c6
+930062fdce: Error: 
+Cannot find module '.
+prisma/client/default
+'
+Require stack:
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\@prisma+c
+lient@7.5.0_prisma_6b
+e28b781632663dc6f09cc
+71a9cefc5\node_module
+s\@prisma\client\defa
+ult.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\.next\s
+erver\chunks\[externa
+ls]__00eb2b76._.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\.next\s
+erver\chunks\[turbopa
+ck]_runtime.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\.next\s
+erver\app\api\seed\ro
+ute.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\next@16.1
+.6_react-dom@19.2.4_r
+eact@19.2.4__react@19
+.2.4\node_modules\nex
+t\dist\server\require
+.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\next@16.1
+.6_react-dom@19.2.4_r
+eact@19.2.4__react@19
+.2.4\node_modules\nex
+t\dist\server\load-co
+mponents.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\next@16.1
+.6_react-dom@19.2.4_r
+eact@19.2.4__react@19
+.2.4\node_modules\nex
+t\dist\build\utils.js
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\next@16.1
+.6_react-dom@19.2.4_r
+eact@19.2.4__react@19
+.2.4\node_modules\nex
+t\dist\build\worker.j
+s
+- D:\sdv_\SDV\B2\SW\b
+1-b2\frontend\node_mo
+dules\.pnpm\next@16.1
+.6_react-dom@19.2.4_r
+eact@19.2.4__react@19
+.2.4\node_modules\nex
+t\dist\compiled\jest-
+worker\processChild.j
+s
+    at Context.extern
+alRequire [as x] (D:\
+sdv_\SDV\B2\SW\b1-b2\
+frontend\.next\server
+\chunks\[turbopack]_r
+untime.js:535:15)
+    at module 
+evaluation (D:\sdv_\S
+DV\B2\SW\b1-b2\fronte
+nd\.next\server\chunk
+s\[externals]__00eb2b
+76._.js:1:1017)
+    at 
+instantiateModule (D:
+\sdv_\SDV\B2\SW\b1-b2
+\frontend\.next\serve
+r\chunks\[turbopack]_
+runtime.js:740:9)
+    at getOrInstantia
+teModuleFromParent (D
+:\sdv_\SDV\B2\SW\b1-b
+2\frontend\.next\serv
+er\chunks\[turbopack]
+_runtime.js:763:12)
+    at 
+Context.esmImport 
+[as i] (D:\sdv_\SDV\B
+2\SW\b1-b2\frontend\.
+next\server\chunks\[t
+urbopack]_runtime.js:
+228:20)
+    at module 
+evaluation (D:\sdv_\S
+DV\B2\SW\b1-b2\fronte
+nd\.next\server\chunk
+s\979b6_next_8308dc43
+._.js:12:26981)
+    at 
+instantiateModule (D:
+\sdv_\SDV\B2\SW\b1-b2
+\frontend\.next\serve
+r\chunks\[turbopack]_
+runtime.js:740:9)
+    at instantiateRun
+timeModule (D:\sdv_\S
+DV\B2\SW\b1-b2\fronte
+nd\.next\server\chunk
+s\[turbopack]_runtime
+.js:768:12)
+    at getOrInstantia
+teRuntimeModule (D:\s
+dv_\SDV\B2\SW\b1-b2\f
+rontend\.next\server\
+chunks\[turbopack]_ru
+ntime.js:781:12)
+    at Object.m (D:\s
+dv_\SDV\B2\SW\b1-b2\f
+rontend\.next\server\
+chunks\[turbopack]_ru
+ntime.js:790:18)
+
+> Build error 
+occurred
+Error: Failed to 
+collect page data 
+for /api/seed
+    at ignore-listed 
+frames {
+  type: 'Error'
+}
