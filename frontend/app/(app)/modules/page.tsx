@@ -1,85 +1,10 @@
 'use client'
 
-<<<<<<< HEAD
-import { useMemo, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
-import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { awardXp } from "@/lib/progression.actions"
-import { useXp } from "@/lib/xp-context"
-
-type ModuleStatus = "done" | "available" | "locked"
-
-type ModuleItem = {
-  id: number
-  title: string
-  description: string
-  xp: number
-  duration: string
-  level: number
-  status: ModuleStatus
-  tags: string[]
-}
-
-const modules: ModuleItem[] = [
-  {
-    id: 1,
-    title: "Qu'est-ce que l'IA générative ?",
-    description: "Découvre ce qu'est l'intelligence artificielle, comment elle fonctionne et pourquoi elle peut être utilisée pour créer de fausses informations.",
-    xp: 100,
-    duration: "10 min",
-    level: 1,
-    status: "done",
-    tags: ["Introduction", "Bases"],
-  },
-  {
-    id: 2,
-    title: "Deepfakes : images et vidéos",
-    description: "Apprends à identifier les images et vidéos manipulées par des algorithmes d'IA, et les indices visuels qui les trahissent.",
-    xp: 150,
-    duration: "15 min",
-    level: 1,
-    status: "available",
-    tags: ["Images", "Vidéos"],
-  },
-  {
-    id: 3,
-    title: "Textes générés par IA",
-    description: "Détecte les articles, posts et messages écrits automatiquement par des modèles de langage comme ChatGPT.",
-    xp: 150,
-    duration: "15 min",
-    level: 2,
-    status: "available",
-    tags: ["Texte", "ChatGPT"],
-  },
-  {
-    id: 4,
-    title: "Audio et voix synthétiques",
-    description: "Comprends comment l'IA peut cloner une voix et créer de faux enregistrements audio convaincants.",
-    xp: 200,
-    duration: "20 min",
-    level: 3,
-    status: "locked",
-    tags: ["Audio", "Clonage vocal"],
-  },
-  {
-    id: 5,
-    title: "Désinformation à grande échelle",
-    description: "Explore comment les fausses informations générées par IA se propagent sur les réseaux sociaux et leur impact sur la société.",
-    xp: 250,
-    duration: "20 min",
-    level: 4,
-    status: "locked",
-    tags: ["Société", "Réseaux sociaux"],
-  },
-]
-=======
 import { useEffect, useState } from "react"
 import { BookOpen, Lock, CheckCircle2, Zap, ChevronRight, ChevronLeft } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { modules } from "@/lib/modules-data"
->>>>>>> cc6be1454d84cdf06275bf323b202f622c4bb7fe
 
 const statusConfig = {
   done: { label: "Terminé", color: "bg-primary/10 text-primary", icon: CheckCircle2 },
@@ -88,21 +13,11 @@ const statusConfig = {
 }
 
 export default function ModulesPage() {
-<<<<<<< HEAD
-  const router = useRouter()
-  const [, startTransition] = useTransition()
-  const { addXp } = useXp()
-  const [moduleStates, setModuleStates] = useState<ModuleItem[]>(() =>
-    modules.map((mod) => ({ ...mod }))
-  )
-  const [awardedIds, setAwardedIds] = useState(() => new Set<number>())
-=======
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [openedSources, setOpenedSources] = useState<string[]>([])
   const [courseRead, setCourseRead] = useState(false)
   const [celebrate, setCelebrate] = useState(false)
   const [completedModuleIds, setCompletedModuleIds] = useState<number[]>([])
->>>>>>> cc6be1454d84cdf06275bf323b202f622c4bb7fe
 
   const selected = selectedId != null ? modules.find((m) => m.id === selectedId) ?? null : null
 
