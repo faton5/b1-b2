@@ -1,6 +1,10 @@
 export const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
-export const DEFAULT_OPENROUTER_MODEL = "mistralai/mistral-small-3.2-24b-instruct"
-export const CHAT_MODEL_LABEL = "Mistral Small 3.2"
+export const DEFAULT_OPENROUTER_MODEL = "mistralai/mistral-small-3.1-24b-instruct:free"
+export const OPENROUTER_FALLBACK_MODELS = [
+  "mistralai/mistral-small-3.1-24b-instruct:free",
+  "mistralai/mistral-small-3.2-24b-instruct",
+] as const
+export const CHAT_MODEL_LABEL = "Mistral Small 3.1 (free)"
 export const MAX_CHAT_HISTORY = 12
 export const MAX_CHAT_ATTACHMENTS = 3
 export const MAX_CHAT_ATTACHMENT_BYTES = 1024 * 1024

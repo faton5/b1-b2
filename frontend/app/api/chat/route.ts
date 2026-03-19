@@ -3,6 +3,7 @@ import {
   ACCEPTED_CHAT_FILE_EXTENSIONS,
   CHAT_SYSTEM_PROMPT,
   DEFAULT_OPENROUTER_MODEL,
+  OPENROUTER_FALLBACK_MODELS,
   MAX_CHAT_ATTACHMENTS,
   MAX_CHAT_ATTACHMENT_BYTES,
   MAX_CHAT_ATTACHMENT_CHARS,
@@ -30,6 +31,8 @@ type OpenRouterResponse = {
 
 type OpenRouterMessageContent = string | Array<{ type?: string; text?: string }> | undefined
 const ACCEPTED_CHAT_FILE_EXTENSION_SET = new Set(ACCEPTED_CHAT_FILE_EXTENSIONS)
+const RETRYABLE_PROVIDER_ERROR_PATTERN =
+  /provider returned error|no provider|temporarily unavailable|insufficient credits|quota/i
 
 function getFileExtension(filename: string): string {
   const lastDotIndex = filename.lastIndexOf(".")
@@ -157,6 +160,14 @@ function applyAttachmentContext(messages: ChatMessage[], attachmentContext: stri
   }
 }
 
+function getCandidateModels() {
+  const configuredModel = process.env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL
+
+  return [configuredModel, ...OPENROUTER_FALLBACK_MODELS].filter(
+    (model, index, allModels) => model && allModels.indexOf(model) === index,
+  )
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
@@ -218,68 +229,93 @@ export async function POST(request: Request) {
   }
 
   const preparedMessages = applyAttachmentContext(messages, attachmentContext)
-
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL
   const temperature = Number(process.env.OPENROUTER_TEMPERATURE || "0.7")
   const maxTokens = Number(process.env.OPENROUTER_MAX_TOKENS || "700")
 
-  const payload = {
-    model,
+  const basePayload = {
     messages: [{ role: "system", content: CHAT_SYSTEM_PROMPT }, ...preparedMessages.messages],
     temperature: Number.isFinite(temperature) ? temperature : 0.7,
     max_tokens: Number.isFinite(maxTokens) ? maxTokens : 700,
   }
 
-  let response: Response
-  try {
-    response = await fetch(OPENROUTER_API_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3000",
-        "X-Title": process.env.OPENROUTER_APP_NAME || "DetectIA",
-      },
-      body: JSON.stringify(payload),
-      cache: "no-store",
-    })
-  } catch {
-    return NextResponse.json({ error: "OpenRouter is unreachable right now." }, { status: 502 })
-  }
-
-  let data: OpenRouterResponse | null = null
-  try {
-    data = (await response.json()) as OpenRouterResponse
-  } catch {
-    data = null
-  }
-
-  if (!response.ok) {
-    return NextResponse.json(
-      { error: data?.error?.message || `OpenRouter request failed with status ${response.status}.` },
-      { status: 502 },
-    )
-  }
-
-  const reply = normalizeContent(data?.choices?.[0]?.message?.content)
-  if (!reply) {
-    return NextResponse.json({ error: "OpenRouter returned an empty reply." }, { status: 502 })
-  }
-
+  const candidateModels = getCandidateModels()
   const sessionUser = await getSession()
   const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
-  try {
-    await sql`
-      INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
-      VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${reply}, ${data?.model || model})
-    `
-  } catch {
-    // Ignore persistence failures so chat still returns the reply.
+  let lastProviderError = "OpenRouter is unreachable right now."
+
+  for (const [index, model] of candidateModels.entries()) {
+    let response: Response
+    try {
+      response = await fetch(OPENROUTER_API_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": process.env.OPENROUTER_SITE_URL || "http://localhost:3000",
+          "X-Title": process.env.OPENROUTER_APP_NAME || "DetectIA",
+        },
+        body: JSON.stringify({
+          ...basePayload,
+          model,
+        }),
+        cache: "no-store",
+      })
+    } catch {
+      if (index < candidateModels.length - 1) {
+        continue
+      }
+
+      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+    }
+
+    let data: OpenRouterResponse | null = null
+    try {
+      data = (await response.json()) as OpenRouterResponse
+    } catch {
+      data = null
+    }
+
+    const providerMessage = data?.error?.message?.trim()
+    if (!response.ok) {
+      lastProviderError = providerMessage || `OpenRouter request failed with status ${response.status}.`
+
+      const shouldRetry =
+        index < candidateModels.length - 1 &&
+        (response.status >= 500 || RETRYABLE_PROVIDER_ERROR_PATTERN.test(lastProviderError))
+
+      if (shouldRetry) {
+        continue
+      }
+
+      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+    }
+
+    const reply = normalizeContent(data?.choices?.[0]?.message?.content)
+    if (!reply) {
+      lastProviderError = "OpenRouter returned an empty reply."
+
+      if (index < candidateModels.length - 1) {
+        continue
+      }
+
+      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+    }
+
+    try {
+      await sql`
+        INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
+        VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${reply}, ${data?.model || model})
+      `
+    } catch {
+      // Ignore persistence failures so chat still returns the reply.
+    }
+
+    return NextResponse.json({
+      reply,
+      model: data?.model || model,
+      userMessageContent: preparedMessages.userMessageContent,
+    })
   }
 
-  return NextResponse.json({
-    reply,
-    model: data?.model || model,
-    userMessageContent: preparedMessages.userMessageContent,
-  })
+  return NextResponse.json({ error: lastProviderError }, { status: 502 })
 }
