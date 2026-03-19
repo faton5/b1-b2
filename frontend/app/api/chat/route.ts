@@ -188,6 +188,8 @@ function getBackendChatUrl() {
   }
 
   return "http://localhost:8000"
+}
+
 function createErrorResponse(error: string, requestId: string, status = 502) {
   return NextResponse.json({ error, requestId }, { status })
 }
@@ -251,9 +253,9 @@ async function recordChatFailure({
 export async function POST(request: Request) {
   const requestId = randomUUID()
   const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    logChatEvent("error", "missing-api-key", { requestId })
-    return createErrorResponse("OPENROUTER_API_KEY is not configured on the frontend server.", requestId, 500)
+  const forceBackendProxy = process.env.FORCE_BACKEND_CHAT_PROXY === "true"
+  if (!apiKey && !forceBackendProxy) {
+    logChatEvent("warn", "missing-api-key", { requestId })
   }
 
   const contentType = request.headers.get("content-type") || ""
