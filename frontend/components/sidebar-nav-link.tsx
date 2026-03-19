@@ -3,13 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BookOpen, Bot, Gamepad2, HelpCircle, Image as ImageIcon, LayoutDashboard, Trophy } from "lucide-react"
+import { BookOpen, Bot, Gamepad2, HelpCircle, LayoutDashboard, Trophy } from "lucide-react"
 
 const icons = {
   dashboard: LayoutDashboard,
   book: BookOpen,
   chat: Bot,
-  gallery: ImageIcon,
   quiz: HelpCircle,
   game: Gamepad2,
   trophy: Trophy,
