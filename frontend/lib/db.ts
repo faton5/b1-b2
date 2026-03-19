@@ -90,6 +90,22 @@ const schema = `
     model TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS chat_failures (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id TEXT NOT NULL,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_message TEXT,
+    model TEXT,
+    attempt INTEGER NOT NULL DEFAULT 1,
+    status_code INTEGER,
+    error_message TEXT NOT NULL,
+    provider_message TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_chat_failures_created_at ON chat_failures(created_at DESC);
+  CREATE INDEX IF NOT EXISTS idx_chat_failures_request_id ON chat_failures(request_id);
 `
 
 function resolveDatabasePath(databaseUrl: string): string {
