@@ -190,6 +190,12 @@ function getBackendChatUrl() {
   return "http://localhost:8000"
 }
 
+function buildBackendRelayUrl() {
+  const baseUrl = getBackendChatUrl()
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`
+  return new URL("chat/relay", normalizedBase).toString()
+}
+
 function createErrorResponse(error: string, requestId: string, status = 502) {
   return NextResponse.json({ error, requestId }, { status })
 }
@@ -326,11 +332,11 @@ export async function POST(request: Request) {
   const useBackendProxy = forceBackendProxy || !apiKey
 
   if (useBackendProxy) {
-    const backendUrl = new URL("/chat/relay", getBackendChatUrl())
+    const backendUrl = buildBackendRelayUrl()
 
     let relayResponse: Response
     try {
-      relayResponse = await fetch(backendUrl.toString(), {
+      relayResponse = await fetch(backendUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
