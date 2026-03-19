@@ -27,6 +27,22 @@ export default async function DashboardPage() {
     LIMIT 200
   `
 
+  const chatTranscripts = await sql`
+    SELECT
+      ct.id,
+      ct.user_id,
+      ct.user_message,
+      ct.assistant_message,
+      ct.model,
+      ct.created_at,
+      u.username,
+      u.email
+    FROM chat_transcripts ct
+    LEFT JOIN users u ON u.id = ct.user_id
+    ORDER BY ct.created_at DESC
+    LIMIT 200
+  `
+
   return (
     <div className="p-8 max-w-6xl mx-auto space-y-6">
       <div>
@@ -71,6 +87,53 @@ export default async function DashboardPage() {
                 <tr>
                   <td colSpan={6} className="py-6 text-center text-muted-foreground">
                     Aucune reponse pour le moment.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Derniers echanges chat ({chatTranscripts.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b border-border">
+                <th className="py-2 pr-3">Date</th>
+                <th className="py-2 pr-3">Compte</th>
+                <th className="py-2 pr-3">Question</th>
+                <th className="py-2 pr-3">Reponse</th>
+                <th className="py-2">Modele</th>
+              </tr>
+            </thead>
+            <tbody>
+              {chatTranscripts.map((row) => (
+                <tr key={row.id as number} className="border-b border-border/60 align-top">
+                  <td className="py-2 pr-3 text-muted-foreground whitespace-nowrap">
+                    {row.created_at as string}
+                  </td>
+                  <td className="py-2 pr-3 whitespace-nowrap">
+                    {(row.username as string | null) || (row.user_id ? `Invite #${row.user_id}` : "Invite")}
+                  </td>
+                  <td className="py-2 pr-3 min-w-[260px] whitespace-pre-wrap">
+                    {row.user_message as string}
+                  </td>
+                  <td className="py-2 pr-3 min-w-[260px] whitespace-pre-wrap">
+                    {row.assistant_message as string}
+                  </td>
+                  <td className="py-2 text-muted-foreground whitespace-nowrap">
+                    {(row.model as string | null) || "-"}
+                  </td>
+                </tr>
+              ))}
+              {chatTranscripts.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                    Aucun echange pour le moment.
                   </td>
                 </tr>
               )}

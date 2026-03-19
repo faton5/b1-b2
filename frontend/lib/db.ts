@@ -81,6 +81,15 @@ const schema = `
     xp_earned INTEGER NOT NULL,
     played_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS chat_transcripts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_message TEXT NOT NULL,
+    assistant_message TEXT NOT NULL,
+    model TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
 `
 
 function resolveDatabasePath(databaseUrl: string): string {

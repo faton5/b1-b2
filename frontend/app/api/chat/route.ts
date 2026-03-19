@@ -11,6 +11,8 @@ import {
   type ChatAttachment,
   type ChatMessage,
 } from "@/lib/chat-config"
+import sql from "@/lib/db"
+import { getSession } from "@/lib/session"
 
 export const runtime = "nodejs"
 
@@ -262,6 +264,17 @@ export async function POST(request: Request) {
   const reply = normalizeContent(data?.choices?.[0]?.message?.content)
   if (!reply) {
     return NextResponse.json({ error: "OpenRouter returned an empty reply." }, { status: 502 })
+  }
+
+  const sessionUser = await getSession()
+  const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
+  try {
+    await sql`
+      INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
+      VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${reply}, ${data?.model || model})
+    `
+  } catch {
+    // Ignore persistence failures so chat still returns the reply.
   }
 
   return NextResponse.json({
