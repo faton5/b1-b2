@@ -7,7 +7,7 @@ from app.services.chat import (
     ChatConfigurationError,
     ChatProviderError,
     generate_assistant_reply,
-    get_default_model,
+    generate_assistant_reply_from_messages,
 )
 from app.services.progression import get_current_level
 
@@ -139,3 +139,28 @@ def send_message(
         monthly_messages_used=monthly_messages_used + 1,
         monthly_message_limit=user.account_tier.monthly_message_limit,
     )
+
+
+@router.post("/chat/relay", response_model=schemas.ChatRelayResponse)
+def relay_chat(payload: schemas.ChatRelayRequest) -> schemas.ChatRelayResponse:
+    if not payload.messages:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Messages are required")
+
+    messages = [
+        {"role": "system", "content": constants.SYSTEM_PROMPT.strip()},
+        *({"role": item.role, "content": item.content} for item in payload.messages),
+    ]
+
+    try:
+        provider_reply = generate_assistant_reply_from_messages(
+            messages=messages,
+            model=payload.model,
+            temperature=payload.temperature,
+            max_tokens=payload.max_tokens,
+        )
+    except ChatConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+    except ChatProviderError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+
+    return schemas.ChatRelayResponse(reply=provider_reply.content, model=provider_reply.model)

@@ -33,6 +33,14 @@ type OpenRouterMessageContent = string | Array<{ type?: string; text?: string }>
 const ACCEPTED_CHAT_FILE_EXTENSION_SET = new Set(ACCEPTED_CHAT_FILE_EXTENSIONS)
 const RETRYABLE_PROVIDER_ERROR_PATTERN =
   /provider returned error|no provider|temporarily unavailable|insufficient credits|quota/i
+const DEFAULT_BACKEND_CHAT_URL = "http://backend:8000"
+
+type BackendRelayResponse = {
+  reply?: string
+  model?: string
+  detail?: string
+  error?: string
+}
 
 function getFileExtension(filename: string): string {
   const lastDotIndex = filename.lastIndexOf(".")
@@ -168,14 +176,22 @@ function getCandidateModels() {
   )
 }
 
+function getBackendChatUrl() {
+  const explicitUrl = process.env.BACKEND_CHAT_URL?.trim() || process.env.BACKEND_BASE_URL?.trim()
+  if (explicitUrl) {
+    return explicitUrl
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return DEFAULT_BACKEND_CHAT_URL
+  }
+
+  return "http://localhost:8000"
+}
+
 export async function POST(request: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "OPENROUTER_API_KEY is not configured on the frontend server." },
-      { status: 500 },
-    )
-  }
+  const forceBackendProxy = process.env.FORCE_BACKEND_CHAT_PROXY === "true"
 
   const contentType = request.headers.get("content-type") || ""
   let rawMessages: unknown
@@ -231,6 +247,64 @@ export async function POST(request: Request) {
   const preparedMessages = applyAttachmentContext(messages, attachmentContext)
   const temperature = Number(process.env.OPENROUTER_TEMPERATURE || "0.7")
   const maxTokens = Number(process.env.OPENROUTER_MAX_TOKENS || "700")
+  const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
+  const sessionUser = await getSession()
+  const useBackendProxy = forceBackendProxy || !apiKey
+
+  if (useBackendProxy) {
+    const backendUrl = new URL("/chat/relay", getBackendChatUrl())
+
+    let relayResponse: Response
+    try {
+      relayResponse = await fetch(backendUrl.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: preparedMessages.messages,
+          temperature: Number.isFinite(temperature) ? temperature : 0.7,
+          max_tokens: Number.isFinite(maxTokens) ? maxTokens : 700,
+        }),
+        cache: "no-store",
+      })
+    } catch {
+      return NextResponse.json({ error: "Backend chat relay is unreachable." }, { status: 502 })
+    }
+
+    let relayData: BackendRelayResponse | null = null
+    try {
+      relayData = (await relayResponse.json()) as BackendRelayResponse
+    } catch {
+      relayData = null
+    }
+
+    if (!relayResponse.ok) {
+      return NextResponse.json(
+        { error: relayData?.detail || relayData?.error || "Backend chat relay failed." },
+        { status: 502 },
+      )
+    }
+
+    if (!relayData?.reply) {
+      return NextResponse.json({ error: "Backend chat relay returned no reply." }, { status: 502 })
+    }
+
+    try {
+      await sql`
+        INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
+        VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${relayData.reply}, ${relayData.model || null})
+      `
+    } catch {
+      // Ignore persistence failures so chat still returns the reply.
+    }
+
+    return NextResponse.json({
+      reply: relayData.reply,
+      model: relayData.model || DEFAULT_OPENROUTER_MODEL,
+      userMessageContent: preparedMessages.userMessageContent,
+    })
+  }
 
   const basePayload = {
     messages: [{ role: "system", content: CHAT_SYSTEM_PROMPT }, ...preparedMessages.messages],
@@ -239,8 +313,6 @@ export async function POST(request: Request) {
   }
 
   const candidateModels = getCandidateModels()
-  const sessionUser = await getSession()
-  const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
   let lastProviderError = "OpenRouter is unreachable right now."
 
   for (const [index, model] of candidateModels.entries()) {

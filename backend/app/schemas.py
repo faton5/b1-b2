@@ -139,6 +139,23 @@ class ChatExchangeRead(BaseModel):
     monthly_message_limit: int
 
 
+class ChatRelayMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRelayRequest(BaseModel):
+    messages: list[ChatRelayMessage]
+    model: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+
+
+class ChatRelayResponse(BaseModel):
+    reply: str
+    model: str
+
+
 class ChatSystemPromptRead(BaseModel):
     version: str
     prompt: str
