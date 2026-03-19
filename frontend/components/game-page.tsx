@@ -83,7 +83,7 @@ export function GamePage() {
 
   if (!gameStarted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full p-12 bg-white border-blue-100 shadow-lg">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-100 to-purple-200 flex items-center justify-center mx-auto mb-8">
             <Target className="w-10 h-10 text-purple-600" />
@@ -147,7 +147,7 @@ export function GamePage() {
 
   if (currentLevel === levels.length) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full p-12 bg-white border-blue-100 shadow-lg text-center">
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-yellow-100 to-yellow-200 flex items-center justify-center mx-auto mb-8">
             <CheckCircle2 className="w-10 h-10 text-yellow-600" />
@@ -194,7 +194,7 @@ export function GamePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
       {/* Header */}
       <header className="border-b border-blue-100 bg-white/50 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto max-w-4xl px-6 py-4">

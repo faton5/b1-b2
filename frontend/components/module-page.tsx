@@ -45,7 +45,7 @@ export function ModulePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
       {/* Header */}
       <header className="border-b border-blue-100 bg-white/50 backdrop-blur sticky top-0 z-50">
         <div className="mx-auto max-w-4xl px-6 py-4 flex items-center gap-4">
