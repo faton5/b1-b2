@@ -76,28 +76,28 @@ export default function QuizPage() {
 
   if (!current) {
     return (
-      <div className="p-6 max-w-3xl mx-auto min-h-[70vh] flex items-center justify-center text-muted-foreground">
-        Chargement du quiz...
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 flex items-center justify-center text-slate-300">
+        <div className="max-w-3xl mx-auto w-full text-center">Chargement du quiz...</div>
       </div>
     )
   }
 
   if (finished) {
     return (
-      <div className="p-6 max-w-2xl mx-auto min-h-[70vh] flex items-center justify-center">
-        <Card className="w-full text-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 max-w-2xl mx-auto flex items-center justify-center">
+        <Card className="w-full text-center border-purple-500/30 bg-slate-800/80 text-white backdrop-blur">
           <CardHeader>
-            <div className="mx-auto mb-2 size-14 rounded-full bg-primary/10 flex items-center justify-center">
-              <Trophy className="size-7 text-primary" />
+            <div className="mx-auto mb-2 size-14 rounded-full bg-purple-500/20 flex items-center justify-center">
+              <Trophy className="size-7 text-purple-300" />
             </div>
             <CardTitle>Le Décodeur IA — Quiz terminé</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-4xl font-bold text-primary">
+            <p className="text-4xl font-bold text-purple-300">
               {score} / {questions.length}
             </p>
-            <p className="text-muted-foreground">bonnes réponses</p>
-            <Button onClick={handleRestart} className="w-full gap-2" size="lg">
+            <p className="text-slate-300">bonnes réponses</p>
+            <Button onClick={handleRestart} className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white" size="lg">
               <RotateCcw className="size-4" />
               Recommencer
             </Button>
@@ -108,47 +108,48 @@ export default function QuizPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-5">
-      <div className="flex items-start gap-3">
-        <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
-          <BookOpenCheck className="size-5 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6">
+      <div className="max-w-3xl mx-auto space-y-5 text-white">
+        <div className="flex items-start gap-3">
+          <div className="size-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+            <BookOpenCheck className="size-5 text-purple-300" />
+          </div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-white">Le Décodeur IA</h1>
+            <p className="text-slate-300 text-sm">Quiz vocabulaire et bons réflexes face à la désinformation</p>
+          </div>
         </div>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-foreground">Le Décodeur IA</h1>
-          <p className="text-muted-foreground text-sm">Quiz vocabulaire et bons réflexes face à la désinformation</p>
+
+        <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
+          <div className="h-full rounded-full bg-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
-      </div>
 
-      <div className="h-2 rounded-full bg-muted overflow-hidden">
-        <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
-      </div>
+        <div className="flex items-center justify-between text-sm text-slate-300">
+          <span>
+            Question {index + 1} / {questions.length}
+          </span>
+          <span className="font-semibold text-white">Score : {score}</span>
+        </div>
 
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          Question {index + 1} / {questions.length}
-        </span>
-        <span className="font-semibold text-foreground">Score : {score}</span>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base leading-relaxed">{current.question}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {current.options.map((option, optionIndex) => {
+        <Card className="border-purple-500/30 bg-slate-800/80 text-white backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-base leading-relaxed">{current.question}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {current.options.map((option, optionIndex) => {
             const optionKey = option.key
-            let style = "border-border bg-card text-foreground hover:bg-muted"
+            let style = "border-slate-600 bg-slate-900/60 text-slate-100 hover:bg-slate-700"
 
             if (confirmed) {
               if (optionKey === current.answer) {
-                style = "border-primary bg-primary/10 text-primary"
+                style = "border-purple-400 bg-purple-500/20 text-purple-200"
               } else if (optionKey === selected) {
                 style = "border-destructive bg-destructive/10 text-destructive"
               } else {
-                style = "border-border bg-card text-muted-foreground opacity-60"
+                style = "border-slate-700 bg-slate-900/40 text-slate-400 opacity-60"
               }
             } else if (selected === optionKey) {
-              style = "border-primary bg-primary/10 text-primary"
+              style = "border-purple-400 bg-purple-500/20 text-purple-200"
             }
 
             return (
@@ -163,7 +164,7 @@ export default function QuizPage() {
                   </span>
                   <span className="leading-relaxed">{option.text}</span>
                   {confirmed && option.key === current.answer && (
-                    <CheckCircle2 className="size-4 ml-auto flex-shrink-0 text-primary" />
+                    <CheckCircle2 className="size-4 ml-auto flex-shrink-0 text-purple-300" />
                   )}
                   {confirmed && option.key === selected && option.key !== current.answer && (
                     <XCircle className="size-4 ml-auto flex-shrink-0 text-destructive" />
@@ -171,40 +172,46 @@ export default function QuizPage() {
                 </div>
               </button>
             )
-          })}
-        </CardContent>
-      </Card>
+            })}
+          </CardContent>
+        </Card>
 
-      {confirmed && (
-        <div
-          className={cn(
-            "rounded-xl border px-4 py-3 text-sm leading-relaxed",
-            isCorrect ? "bg-primary/10 border-primary/20" : "bg-destructive/10 border-destructive/20",
-          )}
-        >
-          <p className={cn("font-semibold", isCorrect ? "text-primary" : "text-destructive")}>
-            {isCorrect ? "Bonne réponse !" : "Mauvaise réponse."}
-          </p>
-          <p className="text-foreground/80 mt-1">Réponse attendue : {current.answer}</p>
-        </div>
-      )}
+        {confirmed && (
+          <div
+            className={cn(
+              "rounded-xl border px-4 py-3 text-sm leading-relaxed",
+              isCorrect ? "bg-purple-500/20 border-purple-400/30" : "bg-destructive/10 border-destructive/20",
+            )}
+          >
+            <p className={cn("font-semibold", isCorrect ? "text-purple-200" : "text-destructive")}>
+              {isCorrect ? "Bonne réponse !" : "Mauvaise réponse."}
+            </p>
+            <p className="text-slate-200 mt-1">Réponse attendue : {current.answer}</p>
+          </div>
+        )}
 
-      {!confirmed ? (
-        <Button onClick={handleValidate} disabled={selected === null} className="w-full" size="lg">
-          Valider ma réponse
-        </Button>
-      ) : (
-        <Button onClick={handleNext} className="w-full gap-2" size="lg">
-          {index < questions.length - 1 ? (
-            <>
-              Question suivante
-              <ChevronRight className="size-4" />
-            </>
-          ) : (
-            "Voir mes résultats"
-          )}
-        </Button>
-      )}
+        {!confirmed ? (
+          <Button
+            onClick={handleValidate}
+            disabled={selected === null}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            size="lg"
+          >
+            Valider ma réponse
+          </Button>
+        ) : (
+          <Button onClick={handleNext} className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white" size="lg">
+            {index < questions.length - 1 ? (
+              <>
+                Question suivante
+                <ChevronRight className="size-4" />
+              </>
+            ) : (
+              "Voir mes résultats"
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

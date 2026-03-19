@@ -1,10 +1,13 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { awardXp } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 
 type Level = {
   id: number
@@ -18,8 +21,8 @@ type Level = {
 }
 
 const GAME_TIME_SECONDS = 60
-const CLIP_PREVIEW_SECONDS = 8
-const TOTAL_ROUNDS = 20
+const CLIP_PREVIEW_SECONDS = 5
+const TOTAL_ROUNDS = 10
 
 const IMAGE_POOL: Omit<Level, "id" | "difficulte">[] = [
   {
@@ -174,16 +177,40 @@ const IMAGE_POOL: Omit<Level, "id" | "difficulte">[] = [
     isAI: true,
     correction: "Indice : texture de peau trop uniforme et détails locaux peu naturels.",
   },
+  {
+    titre: "Scène générée stylisée",
+    mediaType: "image",
+    mediaSrc: "https://artlist-toolkit-generations.imgix.net/content/Media-Catalog/Media-Catalog-Artifacts/ff635a00-8f7f-4739-8f3c-b961b581aa4d.png?auto=format%2Ccompress&cs=srgb&s=9cbfcf389aedee71609c91be1ee9f0a8",
+    mediaAlt: "Image stylisée potentiellement générée",
+    isAI: true,
+    correction: "Indice : rendu très lisse et style synthétique, typique d'une génération IA.",
+  },
+  {
+    titre: "Portrait généré réaliste",
+    mediaType: "image",
+    mediaSrc: "https://artlist-toolkit-generations.imgix.net/content/Media-Catalog/Media-Catalog-Artifacts/70366a0a-7a26-4c9c-93aa-80f0708a913e.jpg?auto=format%2Ccompress&cs=srgb&s=ef2119edb536e0dc82a067760a30b454",
+    mediaAlt: "Image potentiellement générée par IA",
+    isAI: true,
+    correction: "Indice : texture très propre et rendu global uniforme, souvent observés sur des images générées.",
+  },
+  {
+    titre: "Prairie de marguerites en montagne",
+    mediaType: "image",
+    mediaSrc: "https://images.pexels.com/photos/1379636/pexels-photo-1379636.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    mediaAlt: "Prairie fleurie et montagnes",
+    isAI: false,
+    correction: "Indice : textures végétales, lumière et perspective cohérentes d'une photo réelle.",
+  },
 ]
 
 const VIDEO_POOL: Omit<Level, "id" | "difficulte">[] = [
   {
-    titre: "Intervenant réel face caméra",
+    titre: "Garçon et sa mère au parc",
     mediaType: "video",
-    mediaSrc: "https://cdn.pixabay.com/video/2021/10/20/92662-637274989_large.mp4",
-    mediaAlt: "Personne réelle qui parle",
+    mediaSrc: "https://videos.pexels.com/video-files/3209298/3209298-hd_1920_1080_25fps.mp4",
+    mediaAlt: "Scène familiale réelle en extérieur",
     isAI: false,
-    correction: "Indice : micro-expressions et rythme visuel sont naturels.",
+    correction: "Indice : vidéo réelle (non IA), mouvements et lumière naturels en extérieur.",
   },
   {
     titre: "Avatar IA studio",
@@ -209,14 +236,6 @@ const VIDEO_POOL: Omit<Level, "id" | "difficulte">[] = [
     isAI: true,
     correction: "Indice : animation trop régulière et rendu artificiel.",
   },
-  {
-    titre: "Prise de parole authentique",
-    mediaType: "video",
-    mediaSrc: "https://cdn.pixabay.com/video/2022/05/16/117119-710546552_large.mp4",
-    mediaAlt: "Intervenant réel",
-    isAI: false,
-    correction: "Indice : synchronisation lèvres/mouvement corporel naturelle.",
-  },
 ]
 
 function shuffleArray<T>(items: T[]): T[] {
@@ -228,113 +247,53 @@ function shuffleArray<T>(items: T[]): T[] {
   return arr
 }
 
+function uniqueByMediaSrc<T extends { mediaSrc: string }>(items: T[]): T[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.mediaSrc)) return false
+    seen.add(item.mediaSrc)
+    return true
+  })
+}
+
 function resolveDifficulty(index: number): Level["difficulte"] {
-  if (index < 6) return "Facile"
-  if (index < 14) return "Moyenne"
+  if (index < 3) return "Facile"
+  if (index < 7) return "Moyenne"
   return "Difficile"
 }
 
-function pickWithRepeat<T>(pool: T[], count: number): T[] {
-  if (pool.length === 0 || count <= 0) return []
-  const shuffled = shuffleArray(pool)
-  const result: T[] = []
-  for (let index = 0; index < count; index += 1) {
-    result.push(shuffled[index % shuffled.length])
-  }
-  return shuffleArray(result)
-}
-
-function buildAnswerPattern(total: number, targetIA: number): boolean[] {
-  const motifs: boolean[][] = [
-    [false, true, true, false],
-    [true, false, true, false],
-    [true, true, false, true],
-    [false, true, false, true],
-  ]
-
-  const pattern: boolean[] = []
-  while (pattern.length < total) {
-    const motif = motifs[Math.floor(Math.random() * motifs.length)]
-    pattern.push(...motif)
-  }
-  pattern.length = total
-
-  let currentIA = pattern.filter(Boolean).length
-  while (currentIA < targetIA) {
-    const falseIndexes = pattern
-      .map((value, index) => ({ value, index }))
-      .filter((entry) => !entry.value)
-      .map((entry) => entry.index)
-    if (falseIndexes.length === 0) break
-    const index = falseIndexes[Math.floor(Math.random() * falseIndexes.length)]
-    pattern[index] = true
-    currentIA += 1
-  }
-
-  while (currentIA > targetIA) {
-    const trueIndexes = pattern
-      .map((value, index) => ({ value, index }))
-      .filter((entry) => entry.value)
-      .map((entry) => entry.index)
-    if (trueIndexes.length === 0) break
-    const index = trueIndexes[Math.floor(Math.random() * trueIndexes.length)]
-    pattern[index] = false
-    currentIA -= 1
-  }
-
-  return pattern
-}
-
 function buildRandomRounds(total = TOTAL_ROUNDS): Level[] {
-  const imageAI = IMAGE_POOL.filter((item) => item.isAI)
-  const imageReal = IMAGE_POOL.filter((item) => !item.isAI)
-  const videoAI = VIDEO_POOL.filter((item) => item.isAI)
-  const videoReal = VIDEO_POOL.filter((item) => !item.isAI)
+  const allMedia = uniqueByMediaSrc([...IMAGE_POOL, ...VIDEO_POOL])
+  const aiPool = allMedia.filter((item) => item.isAI)
+  const nonAiPool = allMedia.filter((item) => !item.isAI)
 
-  const selectedAIImages = pickWithRepeat(imageAI, 8)
-  const selectedRealImages = pickWithRepeat(imageReal, 7)
-  const selectedAIVideos = pickWithRepeat(videoAI, 4)
-  const selectedRealVideos = pickWithRepeat(videoReal, 1)
+  const aiTarget = Math.min(5, total)
+  const nonAiTarget = Math.min(5, total - aiTarget)
 
-  const aiQueue = shuffleArray([...selectedAIImages, ...selectedAIVideos])
-  const realQueue = shuffleArray([...selectedRealImages, ...selectedRealVideos])
+  const selected = uniqueByMediaSrc([
+    ...shuffleArray(aiPool).slice(0, aiTarget),
+    ...shuffleArray(nonAiPool).slice(0, nonAiTarget),
+  ])
 
-  const answerPattern = buildAnswerPattern(total, 12)
-  const rounds: Level[] = []
-  let aiIndex = 0
-  let realIndex = 0
-
-  for (let roundIndex = 0; roundIndex < total; roundIndex += 1) {
-    const wantsAI = answerPattern[roundIndex]
-    let source = wantsAI ? aiQueue[aiIndex] : realQueue[realIndex]
-
-    if (!source) {
-      source = wantsAI ? realQueue[realIndex] : aiQueue[aiIndex]
-      if (!source) break
-      if (wantsAI) {
-        realIndex += 1
-      } else {
-        aiIndex += 1
-      }
-    } else if (wantsAI) {
-      aiIndex += 1
-    } else {
-      realIndex += 1
-    }
-
-    rounds.push({
-      id: roundIndex + 1,
-      titre: source.titre,
-      difficulte: resolveDifficulty(roundIndex),
-      mediaType: source.mediaType,
-      mediaSrc: source.mediaSrc,
-      mediaAlt: source.mediaAlt,
-      isAI: source.isAI,
-      correction: source.correction,
-    })
+  if (selected.length < total) {
+    const remaining = shuffleArray(allMedia).filter(
+      (item) => !selected.some((picked) => picked.mediaSrc === item.mediaSrc),
+    )
+    selected.push(...remaining.slice(0, total - selected.length))
   }
 
-  return rounds
+  const mixed = shuffleArray(selected)
+
+  return mixed.slice(0, total).map((source, roundIndex) => ({
+    id: roundIndex + 1,
+    titre: source.titre,
+    difficulte: resolveDifficulty(roundIndex),
+    mediaType: source.mediaType,
+    mediaSrc: source.mediaSrc,
+    mediaAlt: source.mediaAlt,
+    isAI: source.isAI,
+    correction: source.correction,
+  }))
 }
 
 function difficultyStyle(level: Level["difficulte"]) {
@@ -366,12 +325,17 @@ export default function GamesPage() {
   const [finished, setFinished] = useState(false)
   const [timeLeft, setTimeLeft] = useState(GAME_TIME_SECONDS)
   const [timeoutRound, setTimeoutRound] = useState(false)
+  const [mediaError, setMediaError] = useState(false)
   const [awarded, setAwarded] = useState(false)
   const router = useRouter()
   const [, startTransition] = useTransition()
   const { addXp } = useXp()
 
   const current = levels[index]
+
+  useEffect(() => {
+    setLevels(buildRandomRounds())
+  }, [])
 
   useEffect(() => {
     if (finished || confirmed) return
@@ -393,15 +357,16 @@ export default function GamesPage() {
     const video = videoRef.current
     if (!video) return
     if (video.duration > CLIP_PREVIEW_SECONDS) {
-      video.currentTime = 0
+      video.currentTime = 0.01
     }
   }
 
   function handleVideoTimeUpdate() {
     const video = videoRef.current
     if (!video) return
-    if (video.currentTime >= CLIP_PREVIEW_SECONDS) {
-      video.pause()
+    if (video.seeking) return
+    if (video.currentTime >= CLIP_PREVIEW_SECONDS - 0.05) {
+      video.currentTime = 0.01
     }
   }
 
@@ -552,6 +517,7 @@ export default function GamesPage() {
               ) : current.mediaType === "video" ? (
                 <>
                   <video
+                    key={current.mediaSrc}
                     ref={videoRef}
                     src={current.mediaSrc}
                     className="w-full h-full object-cover"
