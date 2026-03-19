@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import {
   ACCEPTED_CHAT_FILE_EXTENSIONS,
@@ -33,6 +34,14 @@ type OpenRouterMessageContent = string | Array<{ type?: string; text?: string }>
 const ACCEPTED_CHAT_FILE_EXTENSION_SET = new Set(ACCEPTED_CHAT_FILE_EXTENSIONS)
 const RETRYABLE_PROVIDER_ERROR_PATTERN =
   /provider returned error|no provider|temporarily unavailable|insufficient credits|quota/i
+const DEFAULT_BACKEND_CHAT_URL = "http://backend:8000"
+
+type BackendRelayResponse = {
+  reply?: string
+  model?: string
+  detail?: string
+  error?: string
+}
 
 function getFileExtension(filename: string): string {
   const lastDotIndex = filename.lastIndexOf(".")
@@ -168,13 +177,91 @@ function getCandidateModels() {
   )
 }
 
-export async function POST(request: Request) {
-  const apiKey = process.env.OPENROUTER_API_KEY
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "OPENROUTER_API_KEY is not configured on the frontend server." },
-      { status: 500 },
+function getBackendChatUrl() {
+  const explicitUrl = process.env.BACKEND_CHAT_URL?.trim() || process.env.BACKEND_BASE_URL?.trim()
+  if (explicitUrl) {
+    return explicitUrl
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    return DEFAULT_BACKEND_CHAT_URL
+  }
+
+  return "http://localhost:8000"
+}
+
+function buildBackendRelayUrl() {
+  const baseUrl = getBackendChatUrl()
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`
+  return new URL("chat/relay", normalizedBase).toString()
+}
+
+function createErrorResponse(error: string, requestId: string, status = 502) {
+  return NextResponse.json({ error, requestId }, { status })
+}
+
+function logChatEvent(level: "info" | "warn" | "error", event: string, details: Record<string, unknown>) {
+  console[level](`[chat-api] ${event} ${JSON.stringify(details)}`)
+}
+
+async function recordChatFailure({
+  requestId,
+  userId,
+  userMessage,
+  model,
+  attempt,
+  statusCode,
+  errorMessage,
+  providerMessage,
+}: {
+  requestId: string
+  userId: number | null
+  userMessage: string
+  model: string
+  attempt: number
+  statusCode: number | null
+  errorMessage: string
+  providerMessage: string | null
+}) {
+  try {
+    await sql`
+      INSERT INTO chat_failures (
+        request_id,
+        user_id,
+        user_message,
+        model,
+        attempt,
+        status_code,
+        error_message,
+        provider_message
+      )
+      VALUES (
+        ${requestId},
+        ${userId},
+        ${userMessage},
+        ${model},
+        ${attempt},
+        ${statusCode},
+        ${errorMessage},
+        ${providerMessage}
+      )
+    `
+  } catch (error) {
+    console.error(
+      `[chat-api] failure-persist-error ${JSON.stringify({
+        requestId,
+        reason: error instanceof Error ? error.message : "unknown",
+      })}`,
     )
+  }
+}
+
+export async function POST(request: Request) {
+  const requestId = randomUUID()
+  const apiKey = process.env.OPENROUTER_API_KEY
+  const forceBackendProxy = process.env.FORCE_BACKEND_CHAT_PROXY === "true"
+  if (!apiKey && !forceBackendProxy) {
+    logChatEvent("warn", "missing-api-key", { requestId })
   }
 
   const contentType = request.headers.get("content-type") || ""
@@ -186,13 +273,15 @@ export async function POST(request: Request) {
     try {
       formData = await request.formData()
     } catch {
-      return NextResponse.json({ error: "Invalid form payload." }, { status: 400 })
+      logChatEvent("warn", "invalid-form-payload", { requestId })
+      return createErrorResponse("Invalid form payload.", requestId, 400)
     }
 
     try {
       rawMessages = JSON.parse(String(formData.get("messages") || "[]"))
     } catch {
-      return NextResponse.json({ error: "Invalid messages payload." }, { status: 400 })
+      logChatEvent("warn", "invalid-messages-payload", { requestId })
+      return createErrorResponse("Invalid messages payload.", requestId, 400)
     }
 
     files = formData
@@ -203,7 +292,8 @@ export async function POST(request: Request) {
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json({ error: "Invalid JSON payload." }, { status: 400 })
+      logChatEvent("warn", "invalid-json-payload", { requestId })
+      return createErrorResponse("Invalid JSON payload.", requestId, 400)
     }
 
     rawMessages = body.messages
@@ -213,11 +303,16 @@ export async function POST(request: Request) {
   const latestUserMessage = [...messages].reverse().find((message) => message.role === "user")
 
   if (!latestUserMessage) {
-    return NextResponse.json({ error: "A user message is required." }, { status: 400 })
+    logChatEvent("warn", "missing-user-message", { requestId, messageCount: messages.length })
+    return createErrorResponse("A user message is required.", requestId, 400)
   }
 
   if (latestUserMessage.content.length > 4000) {
-    return NextResponse.json({ error: "Message too long." }, { status: 400 })
+    logChatEvent("warn", "message-too-long", {
+      requestId,
+      length: latestUserMessage.content.length,
+    })
+    return createErrorResponse("Message too long.", requestId, 400)
   }
 
   let attachmentContext = ""
@@ -225,12 +320,71 @@ export async function POST(request: Request) {
     attachmentContext = (await extractAttachmentContext(files)).attachmentContext
   } catch (error) {
     const message = error instanceof Error ? error.message : "Invalid attachment."
-    return NextResponse.json({ error: message }, { status: 400 })
+    logChatEvent("warn", "attachment-error", { requestId, message })
+    return createErrorResponse(message, requestId, 400)
   }
 
   const preparedMessages = applyAttachmentContext(messages, attachmentContext)
   const temperature = Number(process.env.OPENROUTER_TEMPERATURE || "0.7")
   const maxTokens = Number(process.env.OPENROUTER_MAX_TOKENS || "700")
+  const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
+  const sessionUser = await getSession()
+  const useBackendProxy = forceBackendProxy || !apiKey
+
+  if (useBackendProxy) {
+    const backendUrl = buildBackendRelayUrl()
+
+    let relayResponse: Response
+    try {
+      relayResponse = await fetch(backendUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: preparedMessages.messages,
+          temperature: Number.isFinite(temperature) ? temperature : 0.7,
+          max_tokens: Number.isFinite(maxTokens) ? maxTokens : 700,
+        }),
+        cache: "no-store",
+      })
+    } catch {
+      return NextResponse.json({ error: "Backend chat relay is unreachable." }, { status: 502 })
+    }
+
+    let relayData: BackendRelayResponse | null = null
+    try {
+      relayData = (await relayResponse.json()) as BackendRelayResponse
+    } catch {
+      relayData = null
+    }
+
+    if (!relayResponse.ok) {
+      return NextResponse.json(
+        { error: relayData?.detail || relayData?.error || "Backend chat relay failed." },
+        { status: 502 },
+      )
+    }
+
+    if (!relayData?.reply) {
+      return NextResponse.json({ error: "Backend chat relay returned no reply." }, { status: 502 })
+    }
+
+    try {
+      await sql`
+        INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
+        VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${relayData.reply}, ${relayData.model || null})
+      `
+    } catch {
+      // Ignore persistence failures so chat still returns the reply.
+    }
+
+    return NextResponse.json({
+      reply: relayData.reply,
+      model: relayData.model || DEFAULT_OPENROUTER_MODEL,
+      userMessageContent: preparedMessages.userMessageContent,
+    })
+  }
 
   const basePayload = {
     messages: [{ role: "system", content: CHAT_SYSTEM_PROMPT }, ...preparedMessages.messages],
@@ -239,9 +393,15 @@ export async function POST(request: Request) {
   }
 
   const candidateModels = getCandidateModels()
-  const sessionUser = await getSession()
-  const userMessageContent = preparedMessages.userMessageContent || latestUserMessage.content
   let lastProviderError = "OpenRouter is unreachable right now."
+
+  logChatEvent("info", "request-start", {
+    requestId,
+    userId: sessionUser?.id ?? null,
+    messageCount: messages.length,
+    attachmentsCount: files.length,
+    candidateModels,
+  })
 
   for (const [index, model] of candidateModels.entries()) {
     let response: Response
@@ -260,12 +420,33 @@ export async function POST(request: Request) {
         }),
         cache: "no-store",
       })
-    } catch {
+    } catch (error) {
+      const networkError =
+        error instanceof Error ? `OpenRouter network error: ${error.message}` : "OpenRouter is unreachable right now."
+      lastProviderError = networkError
+      logChatEvent("error", "provider-network-error", {
+        requestId,
+        userId: sessionUser?.id ?? null,
+        model,
+        attempt: index + 1,
+        error: networkError,
+      })
+      await recordChatFailure({
+        requestId,
+        userId: sessionUser?.id ?? null,
+        userMessage: userMessageContent,
+        model,
+        attempt: index + 1,
+        statusCode: null,
+        errorMessage: networkError,
+        providerMessage: null,
+      })
+
       if (index < candidateModels.length - 1) {
         continue
       }
 
-      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+      return createErrorResponse(lastProviderError, requestId, 502)
     }
 
     let data: OpenRouterResponse | null = null
@@ -278,6 +459,25 @@ export async function POST(request: Request) {
     const providerMessage = data?.error?.message?.trim()
     if (!response.ok) {
       lastProviderError = providerMessage || `OpenRouter request failed with status ${response.status}.`
+      logChatEvent("warn", "provider-http-error", {
+        requestId,
+        userId: sessionUser?.id ?? null,
+        model,
+        attempt: index + 1,
+        statusCode: response.status,
+        providerMessage,
+        error: lastProviderError,
+      })
+      await recordChatFailure({
+        requestId,
+        userId: sessionUser?.id ?? null,
+        userMessage: userMessageContent,
+        model,
+        attempt: index + 1,
+        statusCode: response.status,
+        errorMessage: lastProviderError,
+        providerMessage: providerMessage || null,
+      })
 
       const shouldRetry =
         index < candidateModels.length - 1 &&
@@ -287,18 +487,34 @@ export async function POST(request: Request) {
         continue
       }
 
-      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+      return createErrorResponse(lastProviderError, requestId, 502)
     }
 
     const reply = normalizeContent(data?.choices?.[0]?.message?.content)
     if (!reply) {
       lastProviderError = "OpenRouter returned an empty reply."
+      logChatEvent("warn", "empty-provider-reply", {
+        requestId,
+        userId: sessionUser?.id ?? null,
+        model,
+        attempt: index + 1,
+      })
+      await recordChatFailure({
+        requestId,
+        userId: sessionUser?.id ?? null,
+        userMessage: userMessageContent,
+        model,
+        attempt: index + 1,
+        statusCode: response.status,
+        errorMessage: lastProviderError,
+        providerMessage: null,
+      })
 
       if (index < candidateModels.length - 1) {
         continue
       }
 
-      return NextResponse.json({ error: lastProviderError }, { status: 502 })
+      return createErrorResponse(lastProviderError, requestId, 502)
     }
 
     try {
@@ -306,16 +522,30 @@ export async function POST(request: Request) {
         INSERT INTO chat_transcripts (user_id, user_message, assistant_message, model)
         VALUES (${sessionUser?.id ?? null}, ${userMessageContent}, ${reply}, ${data?.model || model})
       `
-    } catch {
+    } catch (error) {
+      logChatEvent("warn", "transcript-persist-error", {
+        requestId,
+        userId: sessionUser?.id ?? null,
+        model: data?.model || model,
+        reason: error instanceof Error ? error.message : "unknown",
+      })
       // Ignore persistence failures so chat still returns the reply.
     }
+
+    logChatEvent("info", "request-success", {
+      requestId,
+      userId: sessionUser?.id ?? null,
+      model: data?.model || model,
+      attempt: index + 1,
+    })
 
     return NextResponse.json({
       reply,
       model: data?.model || model,
       userMessageContent: preparedMessages.userMessageContent,
+      requestId,
     })
   }
 
-  return NextResponse.json({ error: lastProviderError }, { status: 502 })
+  return createErrorResponse(lastProviderError, requestId, 502)
 }

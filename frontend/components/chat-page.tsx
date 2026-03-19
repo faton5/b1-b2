@@ -105,10 +105,12 @@ export function ChatPage({ username }: ChatPageProps) {
         model?: string
         error?: string
         userMessageContent?: string
+        requestId?: string
       }
 
       if (!response.ok || !data.reply) {
-        throw new Error(data.error || "Le service IA a renvoye une erreur.")
+        const suffix = data.requestId ? ` (ref: ${data.requestId})` : ""
+        throw new Error((data.error || "Le service IA a renvoye une erreur.") + suffix)
       }
 
       setActiveModel(data.model || CHAT_MODEL_LABEL)

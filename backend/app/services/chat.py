@@ -135,3 +135,55 @@ def generate_assistant_reply(
         raise ChatProviderError("OpenRouter returned an empty assistant message")
 
     return ProviderReply(content=content, model=str(raw.get("model") or payload["model"]))
+
+
+def generate_assistant_reply_from_messages(
+    messages: list[dict[str, str]],
+    model: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
+) -> ProviderReply:
+    api_key = os.getenv("OPENROUTER_API_KEY")
+    if not api_key:
+        raise ChatConfigurationError("OPENROUTER_API_KEY is not configured on the backend")
+
+    payload = {
+        "model": model or get_default_model(),
+        "messages": messages,
+        "temperature": temperature if temperature is not None else float(os.getenv("OPENROUTER_TEMPERATURE", "0.7")),
+        "max_tokens": max_tokens if max_tokens is not None else int(os.getenv("OPENROUTER_MAX_TOKENS", "700")),
+    }
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "http://localhost:3000"),
+        "X-Title": os.getenv("OPENROUTER_APP_NAME", "b1-b2"),
+    }
+
+    req = request.Request(
+        OPENROUTER_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers=headers,
+        method="POST",
+    )
+
+    try:
+        with request.urlopen(req, timeout=45) as response:
+            raw = json.loads(response.read().decode("utf-8"))
+    except error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise ChatProviderError(f"OpenRouter HTTP {exc.code}: {body}") from exc
+    except error.URLError as exc:
+        raise ChatProviderError(f"OpenRouter network error: {exc.reason}") from exc
+
+    choices = raw.get("choices") or []
+    if not choices:
+        raise ChatProviderError("OpenRouter returned no choices")
+
+    message = choices[0].get("message", {})
+    content = _normalize_content(message.get("content"))
+    if not content:
+        raise ChatProviderError("OpenRouter returned an empty assistant message")
+
+    return ProviderReply(content=content, model=str(raw.get("model") or payload["model"]))
