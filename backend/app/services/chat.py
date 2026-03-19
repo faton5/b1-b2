@@ -28,6 +28,13 @@ def get_default_model() -> str:
     return os.getenv("OPENROUTER_MODEL", DEFAULT_OPENROUTER_MODEL)
 
 
+def _get_api_key() -> str:
+    api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+    if not api_key or api_key.lower() == "replace_me":
+        raise ChatConfigurationError("OPENROUTER_API_KEY is not configured on the backend")
+    return api_key
+
+
 def _normalize_content(content: object) -> str:
     if isinstance(content, str):
         return content.strip()
@@ -83,9 +90,7 @@ def generate_assistant_reply(
     monthly_messages_used: int,
     user_message: str,
 ) -> ProviderReply:
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ChatConfigurationError("OPENROUTER_API_KEY is not configured on the backend")
+    api_key = _get_api_key()
 
     payload = {
         "model": get_default_model(),
@@ -143,9 +148,7 @@ def generate_assistant_reply_from_messages(
     temperature: float | None = None,
     max_tokens: int | None = None,
 ) -> ProviderReply:
-    api_key = os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        raise ChatConfigurationError("OPENROUTER_API_KEY is not configured on the backend")
+    api_key = _get_api_key()
 
     payload = {
         "model": model or get_default_model(),

@@ -177,6 +177,14 @@ function getCandidateModels() {
   )
 }
 
+function getOpenRouterApiKey(): string | undefined {
+  const apiKey = process.env.OPENROUTER_API_KEY?.trim()
+  if (!apiKey || apiKey.toLowerCase() === "replace_me") {
+    return undefined
+  }
+  return apiKey
+}
+
 function getBackendChatUrl() {
   const explicitUrl = process.env.BACKEND_CHAT_URL?.trim() || process.env.BACKEND_BASE_URL?.trim()
   if (explicitUrl) {
@@ -258,7 +266,7 @@ async function recordChatFailure({
 
 export async function POST(request: Request) {
   const requestId = randomUUID()
-  const apiKey = process.env.OPENROUTER_API_KEY
+  const apiKey = getOpenRouterApiKey()
   const forceBackendProxy = process.env.FORCE_BACKEND_CHAT_PROXY === "true"
   if (!apiKey && !forceBackendProxy) {
     logChatEvent("warn", "missing-api-key", { requestId })
@@ -349,7 +357,10 @@ export async function POST(request: Request) {
         cache: "no-store",
       })
     } catch {
-      return NextResponse.json({ error: "Backend chat relay is unreachable." }, { status: 502 })
+      return NextResponse.json(
+        { error: "Backend chat relay is unreachable.", requestId },
+        { status: 502 },
+      )
     }
 
     let relayData: BackendRelayResponse | null = null
@@ -361,13 +372,16 @@ export async function POST(request: Request) {
 
     if (!relayResponse.ok) {
       return NextResponse.json(
-        { error: relayData?.detail || relayData?.error || "Backend chat relay failed." },
+        { error: relayData?.detail || relayData?.error || "Backend chat relay failed.", requestId },
         { status: 502 },
       )
     }
 
     if (!relayData?.reply) {
-      return NextResponse.json({ error: "Backend chat relay returned no reply." }, { status: 502 })
+      return NextResponse.json(
+        { error: "Backend chat relay returned no reply.", requestId },
+        { status: 502 },
+      )
     }
 
     try {
