@@ -31,8 +31,6 @@ services:
       OPENROUTER_APP_NAME: ${OPENROUTER_APP_NAME:-DetectIA}
       OPENROUTER_TEMPERATURE: ${OPENROUTER_TEMPERATURE:-0.7}
       OPENROUTER_MAX_TOKENS: ${OPENROUTER_MAX_TOKENS:-700}
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
     volumes:
       - frontend-data:/app/data
 
@@ -44,7 +42,7 @@ services:
       - frontend
       - backend
     ports:
-      - "8080:80"
+      - "80:80"
 
 volumes:
   backend-data:
