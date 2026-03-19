@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { modules } from "@/lib/modules-data"
 
 const statusConfig = {
-  done: { label: "TerminÃ©", color: "bg-primary/10 text-primary", icon: CheckCircle2 },
+  done: { label: "Terminé", color: "bg-primary/10 text-primary", icon: CheckCircle2 },
   available: { label: "Disponible", color: "bg-secondary/20 text-secondary-foreground", icon: BookOpen },
-  locked: { label: "VerrouillÃ©", color: "bg-muted text-muted-foreground", icon: Lock },
+  locked: { label: "Verrouillé", color: "bg-muted text-muted-foreground", icon: Lock },
 }
 
 export default function ModulesPage() {
@@ -56,9 +56,9 @@ export default function ModulesPage() {
     return (
       <div className="p-8 max-w-4xl mx-auto space-y-8">
         <div>
-          <h1 className="text-2xl font-bold text-foreground text-balance">Modules pÃ©dagogiques</h1>
+          <h1 className="text-2xl font-bold text-foreground text-balance">Modules pédagogiques</h1>
           <p className="text-muted-foreground mt-1">
-            DÃ©couvre comment utiliser l&apos;IA de faÃ§on Ã©clairÃ©e, responsable et utile, sans perdre ton esprit critique ni ta capacitÃ© Ã  rÃ©flÃ©chir.
+            Découvre comment utiliser l&apos;IA de façon éclairée, responsable et utile, sans perdre ton esprit critique ni ta capacité à réfléchir.
           </p>
         </div>
 
@@ -67,7 +67,7 @@ export default function ModulesPage() {
             <p className="text-2xl font-bold text-primary">
               {completedCount} / {modules.length}
             </p>
-            <p className="text-xs text-muted-foreground">modules terminÃ©s</p>
+            <p className="text-xs text-muted-foreground">modules terminés</p>
           </div>
           <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
             <div
@@ -77,7 +77,7 @@ export default function ModulesPage() {
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-foreground">{totalXp} XP</p>
-            <p className="text-xs text-muted-foreground">gagnÃ©s</p>
+            <p className="text-xs text-muted-foreground">gagnés</p>
           </div>
         </div>
 
@@ -116,7 +116,7 @@ export default function ModulesPage() {
                           {isCompleted && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
                               <CheckCircle2 className="w-3 h-3" />
-                              TerminÃ©
+                              Terminé
                             </span>
                           )}
                         </div>
@@ -165,11 +165,11 @@ export default function ModulesPage() {
           <div className="flex-1">
             <h1 className="text-lg font-bold text-gray-900">{selected.title}</h1>
             <p className="text-xs text-gray-600">
-              Module {selected.id} sur {modules.length} â€¢ {selected.duration}
+              Module {selected.id} sur {modules.length} • {selected.duration}
             </p>
           </div>
           <Badge className={completed ? "bg-green-100 text-green-700 border-green-300" : "bg-blue-100 text-blue-700"}>
-            {completed ? "Module complÃ©tÃ©" : `${selected.xp} XP`}
+            {completed ? "Module complété" : `${selected.xp} XP`}
           </Badge>
         </div>
         <div className="mx-auto max-w-4xl px-6 pb-3">
@@ -186,7 +186,7 @@ export default function ModulesPage() {
         {selected.resources.length > 0 && (
           <Card className="p-5 bg-gradient-to-br from-purple-50 to-cyan-50 border-purple-100">
             <p className="text-sm font-semibold text-foreground mb-2">
-              Ã‰tape 1 : ouvrir toutes les sources du module
+              Étape 1 : ouvrir toutes les sources du module
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               {selected.resources.map((resource) => {
@@ -200,7 +200,7 @@ export default function ModulesPage() {
                         opened ? "text-green-700" : "text-primary"
                       }`}
                     >
-                      {opened ? "âœ“ " : ""}
+                      {opened ? "✓ " : ""}
                       {resource.label}
                     </button>
                   </li>
@@ -233,7 +233,7 @@ export default function ModulesPage() {
             <div className="flex-1 space-y-3">
               <div className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-3 py-1 text-xs font-medium text-primary">
                 <BookOpen className="w-3 h-3" />
-                Module {selected.id} â€¢ Niveau {selected.level}
+                Module {selected.id} • Niveau {selected.level}
               </div>
               <h2 className="text-xl md:text-2xl font-bold text-foreground">{selected.title}</h2>
               <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{selected.description}</p>
@@ -272,13 +272,13 @@ export default function ModulesPage() {
               courseRead ? "border-green-500 text-green-700 bg-green-50" : "border-primary text-primary bg-primary/5"
             }`}
           >
-            {courseRead ? "Cours marquÃ© comme lu" : "J'ai lu tout le cours"}
+            {courseRead ? "Cours marqué comme lu" : "J'ai lu tout le cours"}
           </button>
         </div>
 
         {celebrate && (
           <p className="text-center text-lg font-bold text-green-600 animate-bounce">
-            ðŸŽ‰ Bravo, tu as complÃ©tÃ© ce module !
+            🎉 Bravo, tu as complété ce module !
           </p>
         )}
       </main>
