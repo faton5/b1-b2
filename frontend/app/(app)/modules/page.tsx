@@ -54,13 +54,14 @@ export default function ModulesPage() {
 
   if (!selected) {
     return (
-      <div className="p-8 max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground text-balance">Modules pédagogiques</h1>
-          <p className="text-muted-foreground mt-1">
-            Découvre comment utiliser l&apos;IA de façon éclairée, responsable et utile, sans perdre ton esprit critique ni ta capacité à réfléchir.
-          </p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
+        <div className="p-8 max-w-4xl mx-auto space-y-8">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground text-balance text-gray-100">Modules pédagogiques</h1>
+            <p className="text-muted-foreground mt-1 text-gray-100">
+              Découvre comment utiliser l&apos;IA de façon éclairée, responsable et utile, sans perdre ton esprit critique ni ta capacité à réfléchir.
+            </p>
+          </div>
 
         <div className="flex items-center gap-6 p-4 rounded-xl bg-primary/5 border border-primary/10">
           <div className="text-center">
@@ -81,69 +82,70 @@ export default function ModulesPage() {
           </div>
         </div>
 
-        <div className="space-y-3">
-          {modules.map((moduleItem) => {
-            const cfg = statusConfig[moduleItem.status as keyof typeof statusConfig]
-            const StatusIcon = cfg.icon
-            const isLocked = moduleItem.status === "locked"
-            const isCompleted = completedModuleIds.includes(moduleItem.id)
+          <div className="space-y-3">
+            {modules.map((moduleItem) => {
+              const cfg = statusConfig[moduleItem.status as keyof typeof statusConfig]
+              const StatusIcon = cfg.icon
+              const isLocked = moduleItem.status === "locked"
+              const isCompleted = completedModuleIds.includes(moduleItem.id)
 
-            return (
-              <button
-                key={moduleItem.id}
-                type="button"
-                onClick={() => {
-                  setSelectedId(moduleItem.id)
-                  setOpenedSources([])
-                  setCourseRead(false)
-                  setCelebrate(false)
-                }}
-                className="w-full text-left"
-              >
-                <Card
-                  className={`transition-shadow border-2 ${
-                    isLocked ? "opacity-60 border-border" : "hover:shadow-md border-border"
-                  }`}
+              return (
+                <button
+                  key={moduleItem.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(moduleItem.id)
+                    setOpenedSources([])
+                    setCourseRead(false)
+                    setCelebrate(false)
+                  }}
+                  className="w-full text-left"
                 >
-                  <CardContent className="pt-5 pb-5 flex items-start gap-4">
-                    <div className={`size-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
-                      <StatusIcon className="size-5" />
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="space-y-1">
-                          <h3 className="font-semibold text-foreground leading-snug">{moduleItem.title}</h3>
-                          {isCompleted && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Terminé
-                            </span>
-                          )}
+                  <Card
+                    className={`transition-shadow border-2 ${
+                      isLocked ? "opacity-60 border-border" : "hover:shadow-md border-border"
+                    }`}
+                  >
+                    <CardContent className="pt-5 pb-5 flex items-start gap-4">
+                      <div className={`size-11 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}>
+                        <StatusIcon className="size-5" />
+                      </div>
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="space-y-1">
+                            <h3 className="font-semibold text-foreground leading-snug">{moduleItem.title}</h3>
+                            {isCompleted && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-0.5 text-[11px] font-medium text-green-700 border border-green-200">
+                                <CheckCircle2 className="w-3 h-3" />
+                                Terminé
+                              </span>
+                            )}
+                          </div>
+                          {!isLocked && <ChevronRight className="size-4 text-muted-foreground flex-shrink-0 mt-0.5" />}
                         </div>
-                        {!isLocked && <ChevronRight className="size-4 text-muted-foreground flex-shrink-0 mt-0.5" />}
-                      </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{moduleItem.description}</p>
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        {moduleItem.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-medium"
-                          >
-                            {tag}
+                        <p className="text-sm text-muted-foreground leading-relaxed">{moduleItem.description}</p>
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          {moduleItem.tags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground font-medium"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          <span className="text-xs text-muted-foreground">{moduleItem.duration}</span>
+                          <span className="text-xs flex items-center gap-0.5 text-primary font-medium">
+                            <Zap className="size-3" />
+                            {moduleItem.xp} XP
                           </span>
-                        ))}
-                        <span className="text-xs text-muted-foreground">{moduleItem.duration}</span>
-                        <span className="text-xs flex items-center gap-0.5 text-primary font-medium">
-                          <Zap className="size-3" />
-                          {moduleItem.xp} XP
-                        </span>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </button>
-            )
-          })}
+                    </CardContent>
+                  </Card>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     )

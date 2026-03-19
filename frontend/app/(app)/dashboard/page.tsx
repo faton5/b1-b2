@@ -64,13 +64,14 @@ export default async function DashboardPage() {
   `
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Tableau de bord enseignant</h1>
-        <p className="text-muted-foreground mt-1">Toutes les reponses des eleves (quiz).</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900">
+      <div className="p-8 max-w-6xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground text-gray-100">Tableau de bord enseignant</h1>
+          <p className="text-muted-foreground mt-1 text-gray-100">Toutes les reponses des eleves (quiz).</p>
+        </div>
 
-      <Card>
+        <Card>
         <CardHeader>
           <CardTitle className="text-base">Dernieres reponses ({answers.length})</CardTitle>
         </CardHeader>
@@ -218,6 +219,7 @@ export default async function DashboardPage() {
           </table>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }
