@@ -202,7 +202,7 @@ export function ChatPage({ username }: ChatPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.16),_transparent_30%),linear-gradient(180deg,_rgba(248,250,252,1)_0%,_rgba(240,249,255,1)_45%,_rgba(248,250,252,1)_100%)] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-cyan-50 p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
           <Card className="border-sky-100 bg-white/90 shadow-sm backdrop-blur">

@@ -19,7 +19,7 @@ type Level = {
 }
 
 const GAME_TIME_SECONDS = 60
-const CLIP_PREVIEW_SECONDS = 5
+const CLIP_PREVIEW_SECONDS = 20
 const TOTAL_ROUNDS = 10
 
 const IMAGE_POOL: Omit<Level, "id" | "difficulte">[] = [
@@ -351,6 +351,8 @@ export default function GamesPage() {
   function handleVideoLoadedMetadata() {
     const video = videoRef.current
     if (!video) return
+    video.muted = false
+    video.volume = 1
     if (video.duration > CLIP_PREVIEW_SECONDS) {
       video.currentTime = 0.01
     }
@@ -510,6 +512,7 @@ export default function GamesPage() {
                     src={current.mediaSrc}
                     className="w-full h-full object-cover"
                     controls
+                    muted={false}
                     playsInline
                     preload="metadata"
                     onLoadedMetadata={handleVideoLoadedMetadata}
