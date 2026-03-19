@@ -1,13 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { awardXp } from "@/lib/progression.actions"
-import { useXp } from "@/lib/xp-context"
 
 type Level = {
   id: number
@@ -327,9 +325,6 @@ export default function GamesPage() {
   const [timeoutRound, setTimeoutRound] = useState(false)
   const [mediaError, setMediaError] = useState(false)
   const [awarded, setAwarded] = useState(false)
-  const router = useRouter()
-  const [, startTransition] = useTransition()
-  const { addXp } = useXp()
 
   const current = levels[index]
 
@@ -379,15 +374,8 @@ export default function GamesPage() {
     if (awarded) return
     setAwarded(true)
     const xpEarned = finalScore * 80
-    if (xpEarned <= 0) {
-      router.refresh()
-      return
-    }
-    addXp(xpEarned)
-    startTransition(() => {
-      awardXp({ amount: xpEarned, source: "game:detective-ia" })
-      router.refresh()
-    })
+    if (xpEarned <= 0) return
+    void awardXp({ amount: xpEarned, source: "game:detective-ia" }).catch(() => undefined)
   }
 
   function handleAnswer(choiceIsAI: boolean) {

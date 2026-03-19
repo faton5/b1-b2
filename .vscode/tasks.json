@@ -13,6 +13,17 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Start local stack 8080",
+			"type": "shell",
+			"command": "docker compose -f docker-compose.local.yml up --build -d",
+			"group": "build"
+		},
+		{
+			"label": "docker-up-local",
+			"type": "shell",
+			"command": "docker compose -f docker-compose.local.yml up -d --build"
 		}
 	]
 }
