@@ -50,7 +50,7 @@ export function ChatPage({ username }: ChatPageProps) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
-      behavior: "smooth",
+      behavior: "auto",
     })
   }, [messages, isLoading])
 
@@ -202,19 +202,19 @@ export function ChatPage({ username }: ChatPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <Card className="border-sky-100 bg-white/90 shadow-sm backdrop-blur">
-            <CardHeader className="flex flex-col gap-4 border-b border-sky-100 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-sky-50 to-amber-50 p-3 sm:p-4">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+          <Card className="flex h-[calc(100vh-2rem)] max-h-[820px] flex-col overflow-hidden border-sky-200 bg-white/95 shadow-sm backdrop-blur">
+            <CardHeader className="flex flex-col gap-3 border-b border-sky-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-11 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-sm">
-                    <Bot className="size-5" />
+                  <div className="flex size-9 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-sm">
+                    <Bot className="size-4" />
                   </div>
                   <div>
-                    <CardTitle className="text-2xl text-slate-950">Chat IA DetectIA</CardTitle>
-                    <CardDescription>
+                    <CardTitle className="text-lg text-slate-950 sm:text-xl">Chat IA DetectIA</CardTitle>
+                    <CardDescription className="text-sm">
                       Pose une question sur l'IA, les deepfakes, les biais, les prompts ou les bons usages.
                     </CardDescription>
                   </div>
@@ -232,9 +232,9 @@ export function ChatPage({ username }: ChatPageProps) {
               </Button>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-0">
-              <ScrollArea className="h-[60vh]">
-                <div className="space-y-4 p-6">
+            <CardContent className="flex min-h-0 flex-1 flex-col p-0">
+              <ScrollArea className="min-h-0 flex-1">
+                <div className="space-y-3 p-4 sm:p-5">
                   {messages.map((message) => (
                     <div
                       key={message.id}
@@ -245,7 +245,7 @@ export function ChatPage({ username }: ChatPageProps) {
                     >
                       <div
                         className={cn(
-                          "max-w-[85%] rounded-3xl px-4 py-3 text-sm leading-6 shadow-sm",
+                          "max-w-[72%] rounded-2xl px-3 py-2.5 text-sm leading-5 shadow-sm",
                           message.role === "user"
                             ? "bg-slate-950 text-white"
                             : "border border-sky-100 bg-sky-50 text-slate-800",
@@ -279,7 +279,7 @@ export function ChatPage({ username }: ChatPageProps) {
 
                   {isLoading && (
                     <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-3xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-slate-700 shadow-sm">
+                      <div className="max-w-[72%] rounded-2xl border border-sky-100 bg-sky-50 px-3 py-2.5 text-sm text-slate-700 shadow-sm">
                         Aether reflechit...
                       </div>
                     </div>
@@ -288,7 +288,7 @@ export function ChatPage({ username }: ChatPageProps) {
                 </div>
               </ScrollArea>
 
-              <div className="border-t border-sky-100 p-6 pt-4">
+              <div className="border-t border-sky-100 p-4">
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <input
@@ -344,7 +344,7 @@ export function ChatPage({ username }: ChatPageProps) {
                       }
                     }}
                     placeholder="Exemple: comment reconnaitre un deepfake convaincant ?"
-                    className="min-h-28 resize-none border-sky-100 bg-white"
+                    className="min-h-20 max-h-32 resize-none border-sky-100 bg-white"
                     disabled={isLoading}
                   />
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -352,7 +352,7 @@ export function ChatPage({ username }: ChatPageProps) {
                       Entree pour envoyer, Maj + Entree pour une nouvelle ligne.
                     </p>
                     <Button
-                      className="gap-2 sm:min-w-40"
+                      className="gap-2 sm:min-w-32"
                       onClick={() => void handleSubmit()}
                       disabled={isLoading || (!input.trim() && pendingFiles.length === 0)}
                     >
@@ -370,8 +370,8 @@ export function ChatPage({ username }: ChatPageProps) {
             </CardContent>
           </Card>
 
-          <div className="space-y-4">
-            <Card className="border-sky-100 bg-white/80 shadow-sm">
+          <div className="space-y-4 xl:max-h-[820px] xl:overflow-auto">
+            <Card className="border-sky-200 bg-white/95 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Sparkles className="size-4 text-sky-600" />
@@ -386,7 +386,7 @@ export function ChatPage({ username }: ChatPageProps) {
               </CardContent>
             </Card>
 
-            <Card className="border-amber-100 bg-amber-50/80 shadow-sm">
+            <Card className="border-amber-200 bg-white/95 shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base text-amber-950">
                   <ShieldAlert className="size-4 text-amber-600" />

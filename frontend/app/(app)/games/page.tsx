@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { Brain, CheckCircle2, Clock3, RotateCcw, Trophy, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { awardXp } from "@/lib/progression.actions"
+import { recordGameSession } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 
 type Level = {
   id: number
@@ -314,6 +315,7 @@ function getObservationHint(mediaType: Level["mediaType"]) {
 }
 
 export default function GamesPage() {
+  const { addXp } = useXp()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [levels, setLevels] = useState<Level[]>([])
   const [index, setIndex] = useState(0)
@@ -325,6 +327,8 @@ export default function GamesPage() {
   const [timeoutRound, setTimeoutRound] = useState(false)
   const [mediaError, setMediaError] = useState(false)
   const [awarded, setAwarded] = useState(false)
+  const [xpEarned, setXpEarned] = useState(0)
+  const [, startTransition] = useTransition()
 
   const current = levels[index]
 
@@ -375,9 +379,21 @@ export default function GamesPage() {
   function grantXp(finalScore: number) {
     if (awarded) return
     setAwarded(true)
-    const xpEarned = finalScore * 80
-    if (xpEarned <= 0) return
-    void awardXp({ amount: xpEarned, source: "game:detective-ia" }).catch(() => undefined)
+    const earnedXp = finalScore * 80
+
+    startTransition(async () => {
+      const result = await recordGameSession({
+        gameId: "detective-ia",
+        score: finalScore,
+        totalRounds: levels.length,
+        xpAward: Math.max(0, earnedXp),
+      })
+
+      if (result?.xpEarned) {
+        setXpEarned(result.xpEarned)
+        addXp(result.xpEarned)
+      }
+    })
   }
 
   function handleAnswer(choiceIsAI: boolean) {
@@ -413,6 +429,7 @@ export default function GamesPage() {
     setTimeLeft(GAME_TIME_SECONDS)
     setTimeoutRound(false)
     setAwarded(false)
+    setXpEarned(0)
   }
 
   if (!current) {
@@ -435,6 +452,7 @@ export default function GamesPage() {
             <p className="text-6xl font-bold text-purple-300">
               {score} <span className="text-2xl text-slate-400">/ {levels.length}</span>
             </p>
+            {xpEarned > 0 ? <p className="text-sm font-medium text-emerald-300">+{xpEarned} XP gagnes</p> : null}
             <p className="text-slate-300">
               {score === levels.length
                 ? "Parfait !"
@@ -457,12 +475,12 @@ export default function GamesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-4">
       <div className="max-w-2xl mx-auto space-y-4">
-        <div className="flex items-center justify-between text-white">
+        <div className="flex flex-col gap-3 text-white sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <Brain size={28} className="text-purple-400" />
             <span className="text-xl font-bold">Détective IA</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <span className="text-slate-300 text-sm">
               Niveau {index + 1} / {levels.length}
             </span>
@@ -477,9 +495,9 @@ export default function GamesPage() {
         <Card className="border-purple-500/30 bg-slate-800/80 backdrop-blur text-white shadow-xl">
           <CardHeader className="pb-2">
             <div className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-xl">{current.titre}</CardTitle>
-                <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="text-lg sm:text-xl">{current.titre}</CardTitle>
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={cn("text-xs font-semibold px-2 py-1 rounded-full", mediaStyle(current.mediaType))}>
                     {current.mediaType === "video" ? "VIDÉO" : "IMAGE"}
                   </span>
@@ -535,15 +553,18 @@ export default function GamesPage() {
             </div>
 
             {!confirmed && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Button
                   onClick={() => handleAnswer(false)}
                   variant="outline"
-                  className="border-green-500 text-green-400 hover:bg-green-500/10"
+                  className="border-green-500 py-5 text-sm text-green-400 hover:bg-green-500/10 sm:py-6 sm:text-base"
                 >
                   ✅ VRAI CONTENU
                 </Button>
-                <Button onClick={() => handleAnswer(true)} className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Button
+                  onClick={() => handleAnswer(true)}
+                  className="bg-purple-600 py-5 text-sm text-white hover:bg-purple-700 sm:py-6 sm:text-base"
+                >
                   🤖 FAUX IA
                 </Button>
               </div>

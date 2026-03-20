@@ -15,30 +15,28 @@ export default function LoginPage() {
   const [state, formAction, pending] = useActionState(signIn, initialState)
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md flex flex-col items-center gap-8">
-        {/* Logo */}
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <div className="flex w-full max-w-md flex-col items-center gap-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
             <ShieldCheck className="size-8 text-primary-foreground" />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground">DetectIA</h1>
-            <p className="text-sm text-muted-foreground">Apprends à détecter la désinformation IA</p>
+            <p className="text-sm text-muted-foreground">Apprends a detecter la desinformation IA</p>
           </div>
         </div>
 
-        {/* Card */}
-        <Card className="w-full shadow-md border-border">
+        <Card className="w-full border-border shadow-md">
           <CardHeader className="space-y-1 pb-4">
-            <CardTitle className="text-xl">Connexion enseignant</CardTitle>
-            <CardDescription>Acces reserve aux enseignants (@prof.com).</CardDescription>
+            <CardTitle className="text-xl">Connexion</CardTitle>
+            <CardDescription>Professeurs et eleves peuvent se connecter ici.</CardDescription>
           </CardHeader>
 
           <form action={formAction}>
             <CardContent className="space-y-4">
               {state?.error && (
-                <div className="rounded-lg bg-destructive/10 border border-destructive/20 px-4 py-3 text-sm text-destructive">
+                <div className="rounded-lg border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                   {state.error}
                 </div>
               )}
@@ -61,7 +59,7 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  placeholder="••••••••"
+                  placeholder="********"
                   required
                   autoComplete="current-password"
                 />
@@ -72,7 +70,7 @@ export default function LoginPage() {
               <Button type="submit" className="w-full" disabled={pending}>
                 {pending ? (
                   <>
-                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    <Loader2 className="mr-2 size-4 animate-spin" />
                     Connexion...
                   </>
                 ) : (
@@ -80,10 +78,10 @@ export default function LoginPage() {
                 )}
               </Button>
 
-              <p className="text-sm text-muted-foreground text-center">
+              <p className="text-center text-sm text-muted-foreground">
                 Pas encore de compte ?{" "}
-                <Link href="/signup" className="text-primary font-medium hover:underline">
-                  Créer un compte
+                <Link href="/signup" className="font-medium text-primary hover:underline">
+                  Creer un compte
                 </Link>
               </p>
             </CardFooter>

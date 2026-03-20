@@ -15,6 +15,7 @@ const schema = `
     username TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'student',
     level INTEGER NOT NULL DEFAULT 1,
     xp INTEGER NOT NULL DEFAULT 0,
     xp_to_next_level INTEGER NOT NULL DEFAULT 500,
@@ -47,6 +48,16 @@ const schema = `
     score INTEGER NOT NULL,
     xp_earned INTEGER NOT NULL,
     completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS module_completions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    module_id INTEGER NOT NULL,
+    module_title TEXT NOT NULL,
+    xp_earned INTEGER NOT NULL,
+    completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, module_id)
   );
 
   CREATE TABLE IF NOT EXISTS guest_students (
@@ -104,8 +115,18 @@ const schema = `
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
   );
 
+  CREATE TABLE IF NOT EXISTS student_invite_codes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL UNIQUE,
+    teacher_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    used_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    used_at TEXT
+  );
+
   CREATE INDEX IF NOT EXISTS idx_chat_failures_created_at ON chat_failures(created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_chat_failures_request_id ON chat_failures(request_id);
+  CREATE INDEX IF NOT EXISTS idx_student_invite_codes_teacher_user_id ON student_invite_codes(teacher_user_id);
 `
 
 function resolveDatabasePath(databaseUrl: string): string {
@@ -160,16 +181,36 @@ if (databasePath !== ":memory:") {
 }
 
 const db = new DatabaseSync(databasePath)
-db.exec(schema)
+let isInitialized = false
 
-// Migration idempotente : ajoute la colonne role si elle n'existe pas encore
-try {
-  db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'student'`)
-} catch {
-  // La colonne existe déjà — attendu à chaque redémarrage après le premier
+function initializeDatabase() {
+  if (isInitialized) {
+    return
+  }
+
+  db.exec(`PRAGMA journal_mode = WAL;`)
+  db.exec(`PRAGMA busy_timeout = 5000;`)
+  db.exec(schema)
+
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'student'`)
+  } catch {
+    // Column already exists on upgraded databases.
+  }
+
+  const needsTeacherBackfill = db
+    .prepare(`SELECT 1 FROM users WHERE role <> 'teacher' AND lower(email) LIKE '%@prof.com' LIMIT 1`)
+    .get() as { 1?: number } | undefined
+
+  if (needsTeacherBackfill) {
+    db.exec(`UPDATE users SET role = 'teacher' WHERE role <> 'teacher' AND lower(email) LIKE '%@prof.com'`)
+  }
+
+  isInitialized = true
 }
 
 async function sql(strings: TemplateStringsArray, ...values: SqlValue[]): Promise<SqlRow[]> {
+  initializeDatabase()
   const query = buildQuery(strings, values)
   const statement = db.prepare(query.text)
 

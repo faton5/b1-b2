@@ -6,17 +6,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { recordQuizAnswer } from "@/lib/guest.actions"
+import { completeQuiz } from "@/lib/progression.actions"
+import { useXp } from "@/lib/xp-context"
 import { pickRandomQuestions, type OptionKey, type QuizQuestion } from "./question-bank"
 
 const TOTAL_QUESTIONS = 50
 
 export default function QuizPage() {
+  const { addXp } = useXp()
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState<OptionKey | null>(null)
   const [confirmed, setConfirmed] = useState(false)
   const [score, setScore] = useState(0)
   const [finished, setFinished] = useState(false)
+  const [xpEarned, setXpEarned] = useState(0)
+  const [completionSaved, setCompletionSaved] = useState(false)
   const [, startTransition] = useTransition()
 
   useEffect(() => {
@@ -61,6 +66,21 @@ export default function QuizPage() {
       setSelected(null)
       setConfirmed(false)
     } else {
+      if (!completionSaved) {
+        setCompletionSaved(true)
+        startTransition(async () => {
+          const result = await completeQuiz({
+            quizId: "le-decodeur-ia",
+            score,
+          })
+
+          if (result?.xpEarned) {
+            setXpEarned(result.xpEarned)
+            addXp(result.xpEarned)
+          }
+        })
+      }
+
       setFinished(true)
     }
   }
@@ -72,32 +92,35 @@ export default function QuizPage() {
     setConfirmed(false)
     setScore(0)
     setFinished(false)
+    setXpEarned(0)
+    setCompletionSaved(false)
   }
 
   if (!current) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 flex items-center justify-center text-slate-300">
-        <div className="max-w-3xl mx-auto w-full text-center">Chargement du quiz...</div>
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 text-slate-300">
+        <div className="mx-auto w-full max-w-3xl text-center">Chargement du quiz...</div>
       </div>
     )
   }
 
   if (finished) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6 max-w-2xl mx-auto flex items-center justify-center">
-        <Card className="w-full text-center border-purple-500/30 bg-slate-800/80 text-white backdrop-blur">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6">
+        <Card className="w-full max-w-2xl border-purple-500/30 bg-slate-800/80 text-center text-white backdrop-blur">
           <CardHeader>
-            <div className="mx-auto mb-2 size-14 rounded-full bg-purple-500/20 flex items-center justify-center">
+            <div className="mx-auto mb-2 flex size-14 items-center justify-center rounded-full bg-purple-500/20">
               <Trophy className="size-7 text-purple-300" />
             </div>
-            <CardTitle>Le Décodeur IA — Quiz terminé</CardTitle>
+            <CardTitle>Le Decodeur IA — Quiz termine</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-4xl font-bold text-purple-300">
               {score} / {questions.length}
             </p>
-            <p className="text-slate-300">bonnes réponses</p>
-            <Button onClick={handleRestart} className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white" size="lg">
+            <p className="text-slate-300">bonnes reponses</p>
+            {xpEarned > 0 ? <p className="text-sm font-medium text-emerald-300">+{xpEarned} XP gagnes</p> : null}
+            <Button onClick={handleRestart} className="w-full gap-2 bg-purple-600 text-white hover:bg-purple-700" size="lg">
               <RotateCcw className="size-4" />
               Recommencer
             </Button>
@@ -109,18 +132,18 @@ export default function QuizPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-950 to-slate-900 p-6">
-      <div className="max-w-3xl mx-auto space-y-5 text-white">
+      <div className="mx-auto max-w-3xl space-y-5 text-white">
         <div className="flex items-start gap-3">
-          <div className="size-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+          <div className="flex size-10 items-center justify-center rounded-xl bg-purple-500/20">
             <BookOpenCheck className="size-5 text-purple-300" />
           </div>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold text-white">Le Décodeur IA</h1>
-            <p className="text-slate-300 text-sm">Quiz vocabulaire et bons réflexes face à la désinformation</p>
+            <h1 className="text-2xl font-bold text-white">Le Decodeur IA</h1>
+            <p className="text-sm text-slate-300">Quiz vocabulaire et bons reflexes face a la desinformation</p>
           </div>
         </div>
 
-        <div className="h-2 rounded-full bg-slate-700 overflow-hidden">
+        <div className="h-2 overflow-hidden rounded-full bg-slate-700">
           <div className="h-full rounded-full bg-purple-500 transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
 
@@ -136,42 +159,42 @@ export default function QuizPage() {
             <CardTitle className="text-base leading-relaxed">{current.question}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {current.options.map((option, optionIndex) => {
-            const optionKey = option.key
-            let style = "border-slate-600 bg-slate-900/60 text-slate-100 hover:bg-slate-700"
+            {current.options.map((option) => {
+              const optionKey = option.key
+              let style = "border-slate-600 bg-slate-900/60 text-slate-100 hover:bg-slate-700"
 
-            if (confirmed) {
-              if (optionKey === current.answer) {
+              if (confirmed) {
+                if (optionKey === current.answer) {
+                  style = "border-emerald-400 bg-emerald-500/20 text-emerald-100"
+                } else if (optionKey === selected) {
+                  style = "border-red-400 bg-red-500/20 text-red-100"
+                } else {
+                  style = "border-slate-700 bg-slate-900/40 text-slate-400 opacity-60"
+                }
+              } else if (selected === optionKey) {
                 style = "border-purple-400 bg-purple-500/20 text-purple-200"
-              } else if (optionKey === selected) {
-                style = "border-destructive bg-destructive/10 text-destructive"
-              } else {
-                style = "border-slate-700 bg-slate-900/40 text-slate-400 opacity-60"
               }
-            } else if (selected === optionKey) {
-              style = "border-purple-400 bg-purple-500/20 text-purple-200"
-            }
 
-            return (
-              <button
-                key={optionKey}
-                onClick={() => !confirmed && setSelected(optionKey)}
-                className={cn("w-full text-left px-4 py-3 rounded-lg border text-sm font-medium transition-colors", style)}
-              >
-                <div className="flex items-center gap-3">
-                  <span className="size-6 rounded-full border flex items-center justify-center text-xs font-bold flex-shrink-0">
-                    {option.key}
-                  </span>
-                  <span className="leading-relaxed">{option.text}</span>
-                  {confirmed && option.key === current.answer && (
-                    <CheckCircle2 className="size-4 ml-auto flex-shrink-0 text-purple-300" />
-                  )}
-                  {confirmed && option.key === selected && option.key !== current.answer && (
-                    <XCircle className="size-4 ml-auto flex-shrink-0 text-destructive" />
-                  )}
-                </div>
-              </button>
-            )
+              return (
+                <button
+                  key={optionKey}
+                  onClick={() => !confirmed && setSelected(optionKey)}
+                  className={cn("w-full rounded-lg border px-4 py-3 text-left text-sm font-medium transition-colors", style)}
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-6 flex-shrink-0 items-center justify-center rounded-full border text-xs font-bold">
+                      {option.key}
+                    </span>
+                    <span className="leading-relaxed">{option.text}</span>
+                    {confirmed && option.key === current.answer && (
+                      <CheckCircle2 className="ml-auto size-4 flex-shrink-0 text-emerald-300" />
+                    )}
+                    {confirmed && option.key === selected && option.key !== current.answer && (
+                      <XCircle className="ml-auto size-4 flex-shrink-0 text-red-300" />
+                    )}
+                  </div>
+                </button>
+              )
             })}
           </CardContent>
         </Card>
@@ -180,13 +203,13 @@ export default function QuizPage() {
           <div
             className={cn(
               "rounded-xl border px-4 py-3 text-sm leading-relaxed",
-              isCorrect ? "bg-purple-500/20 border-purple-400/30" : "bg-destructive/10 border-destructive/20",
+              isCorrect ? "border-emerald-400/30 bg-emerald-500/15" : "border-red-400/30 bg-red-500/15",
             )}
           >
-            <p className={cn("font-semibold", isCorrect ? "text-purple-200" : "text-destructive")}>
-              {isCorrect ? "Bonne réponse !" : "Mauvaise réponse."}
+            <p className={cn("font-semibold", isCorrect ? "text-emerald-300" : "text-red-300")}>
+              {isCorrect ? "Bonne reponse !" : "Mauvaise reponse."}
             </p>
-            <p className="text-slate-200 mt-1">Réponse attendue : {current.answer}</p>
+            <p className="mt-1 text-slate-200">Reponse attendue : {current.answer}</p>
           </div>
         )}
 
@@ -194,20 +217,20 @@ export default function QuizPage() {
           <Button
             onClick={handleValidate}
             disabled={selected === null}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+            className="w-full bg-purple-600 text-white hover:bg-purple-700"
             size="lg"
           >
-            Valider ma réponse
+            Valider ma reponse
           </Button>
         ) : (
-          <Button onClick={handleNext} className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white" size="lg">
+          <Button onClick={handleNext} className="w-full gap-2 bg-purple-600 text-white hover:bg-purple-700" size="lg">
             {index < questions.length - 1 ? (
               <>
                 Question suivante
                 <ChevronRight className="size-4" />
               </>
             ) : (
-              "Voir mes résultats"
+              "Voir mes resultats"
             )}
           </Button>
         )}

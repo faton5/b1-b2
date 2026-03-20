@@ -32,6 +32,16 @@ build/
 .next/
 coverage/
 
+# Local app data / test artefacts
+frontend/data/*.db-shm
+frontend/data/*.db-wal
+frontend/data/*.db-journal
+frontend/data/playwright*.db
+frontend/data/playwright*.db-shm
+frontend/data/playwright*.db-wal
+frontend/data/build-check-*.db
+frontend/playwright-*.err
+
 # Docker
 *.local.yml
 

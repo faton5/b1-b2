@@ -3,6 +3,7 @@
 import { cookies } from "next/headers"
 import { randomBytes } from "crypto"
 import sql from "@/lib/db"
+import { getSession } from "@/lib/session"
 
 const GUEST_COOKIE = "guest_token"
 
@@ -50,7 +51,8 @@ export async function recordQuizAnswer(payload: {
   correctAnswer: string
   isCorrect: boolean
 }) {
-  const guestId = await ensureGuest()
+  const user = await getSession()
+  const guestId = user ? null : await ensureGuest()
 
   await sql`
     INSERT INTO quiz_answers (
@@ -64,7 +66,7 @@ export async function recordQuizAnswer(payload: {
       is_correct
     )
     VALUES (
-      ${null},
+      ${user?.id ?? null},
       ${guestId},
       ${payload.quizId},
       ${payload.questionIndex},
